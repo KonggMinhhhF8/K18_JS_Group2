@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chỉnh sửa khách hàng | ShopAdmin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #3498db;
+      --dark-color: #2c3e50;
+      --bg-color: #f4f7f6;
+      --success: #27ae60;
+      --border: #dcdde1;
+      --text-muted: #7f8c8d;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--dark-color);
+    }
+
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--dark-color);
+      color: white;
+      padding: 25px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .sidebar h2 {
+      margin-bottom: 40px;
+      text-align: center;
+      color: var(--primary-color);
+    }
+
+    .sidebar ul {
+      list-style: none;
+    }
+
+    .sidebar ul li {
+      padding: 15px;
+      cursor: pointer;
+      border-radius: 8px;
+      margin-bottom: 5px;
+      color: #ecf0f1;
+      transition: 0.3s;
+    }
+
+    .sidebar ul li:hover {
+      background: #34495e;
+    }
+
+    .sidebar ul li.active {
+      background: #34495e;
+      color: var(--primary-color);
+    }
+
+    .sidebar ul li i {
+      width: 20px;
+      margin-right: 10px;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      padding: 40px;
+    }
+
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      gap: 20px;
+    }
+
+    .btn-back {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .btn-back i {
+      margin-right: 6px;
+    }
+
+    /* Form Layout */
+    .customer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 30px;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+    }
+
+    .card h3 {
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* Input Styles */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: 0.3s;
+      font-size: 0.95rem;
+      background: #fff;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--primary-color);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 110px;
+    }
+
+    .form-group input[readonly] {
+      background: #f8f9fa;
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    /* Avatar Upload */
+    .avatar-upload {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 30px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .avatar-upload:hover {
+      border-color: var(--primary-color);
+      background: #f0f7ff;
+    }
+
+    .avatar-placeholder,
+    .avatar-img {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      margin: 0 auto 14px;
+    }
+
+    .avatar-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #eaf4fd;
+      color: var(--primary-color);
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .avatar-img {
+      object-fit: cover;
+      display: none;
+      border: 4px solid #eaf4fd;
+    }
+
+    .avatar-upload p {
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .helper-text {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Stats Box */
+    .info-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .info-item {
+      padding: 15px;
+      background: #f8fafb;
+      border: 1px solid #eef2f5;
+      border-radius: 10px;
+    }
+
+    .info-item span {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .info-item strong {
+      font-size: 1rem;
+      color: var(--dark-color);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-gold {
+      background: #fff4cc;
+      color: #b8860b;
+    }
+
+    /* Footer Actions */
+    .form-footer {
+      margin-top: 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 15px;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+    }
+
+    .btn {
+      padding: 12px 25px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .btn-save {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-save:hover {
+      opacity: 0.92;
+    }
+
+    .btn-cancel {
+      background: #eee;
+      color: var(--text-muted);
+    }
+
+    .btn-cancel:hover {
+      background: #e6e6e6;
+    }
+
+    @media (max-width: 1100px) {
+      .customer-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+
+      .main-content {
+        padding: 24px 18px;
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .header-actions {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .form-footer {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <aside class="sidebar">
+    <h2>ShopAdmin</h2>
+    <ul>
+      <li><i class="fas fa-home"></i> Tổng quan</li>
+      <li><i class="fas fa-box"></i> Sản phẩm</li>
+      <li><i class="fas fa-shopping-cart"></i> Đơn hàng</li>
+      <li class="active"><i class="fas fa-users"></i> Khách hàng</li>
+      <li><i class="fas fa-chart-line"></i> Báo cáo</li>
+    </ul>
+  </aside>
+
+  <main class="main-content">
+    <div class="header-actions">
+      <a href="#" class="btn-back"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
+      <h2>Chỉnh sửa khách hàng</h2>
+    </div>
+
+    <form id="customerForm">
+      <div class="customer-grid">
+        <!-- Left Column -->
+        <div class="left-col">
+          <div class="card">
+            <h3>Thông tin khách hàng</h3>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Họ và tên</label>
+                <input type="text" placeholder="Nhập họ và tên" value="Nguyễn Anh">
+              </div>
+              <div class="form-group">
+                <label>Mã khách hàng</label>
+                <input type="text" value="CUST-001" readonly>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" placeholder="Nhập email" value="anh.nguyen@email.com">
+              </div>
+              <div class="form-group">
+                <label>Số điện thoại</label>
+                <input type="tel" placeholder="Nhập số điện thoại" value="0912345123">
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Ngày sinh</label>
+                <input type="date" value="1995-08-15">
+              </div>
+              <div class="form-group">
+                <label>Giới tính</label>
+                <select>
+                  <option>Nam</option>
+                  <option selected>Nữ</option>
+                  <option>Khác</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Địa chỉ & Ghi chú</h3>
+
+            <div class="form-group">
+              <label>Địa chỉ</label>
+              <textarea placeholder="Nhập địa chỉ khách hàng">125 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Ghi chú nội bộ</label>
+              <textarea placeholder="Thêm ghi chú chăm sóc khách hàng...">Khách hàng thân thiết, thường mua vào dịp khuyến mãi. Ưu tiên liên hệ qua điện thoại khi có chương trình ưu đãi mới.</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="right-col">
+          <div class="card">
+            <h3>Ảnh đại diện</h3>
+            <div class="avatar-upload" onclick="document.getElementById('avatarInput').click()">
+              <div class="avatar-placeholder" id="avatarPlaceholder">NA</div>
+              <img id="avatarPreview" class="avatar-img" src="#" alt="Ảnh đại diện">
+              <p>Nhấp để tải ảnh đại diện</p>
+              <span class="helper-text">Hỗ trợ JPG, PNG. Khuyến nghị ảnh vuông.</span>
+              <input type="file" id="avatarInput" hidden accept="image/*" onchange="previewAvatar(event)">
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Phân loại</h3>
+
+            <div class="form-group">
+              <label>Hạng khách hàng</label>
+              <select>
+                <option>Đồng</option>
+                <option>Bạc</option>
+                <option selected>Vàng</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Trạng thái</label>
+              <select>
+                <option selected>Hoạt động</option>
+                <option>Tạm khóa</option>
+                <option>Ngừng chăm sóc</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Kênh liên hệ ưu tiên</label>
+              <select>
+                <option selected>Điện thoại</option>
+                <option>Email</option>
+                <option>Zalo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Thống kê mua hàng</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <span>Tổng đơn hàng</span>
+                <strong>25 đơn</strong>
+              </div>
+
+              <div class="info-item">
+                <span>Tổng chi tiêu</span>
+                <strong>45.200.000đ</strong>
+              </div>
+
+              <div class="info-item">
+                <span>Đơn hàng gần nhất</span>
+                <strong>12/08/2024</strong>
+              </div>
+
+              <div class="info-item">
+                <span>Hạng hiện tại</span>
+                <strong><span class="badge badge-gold">VÀNG</span></strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <button type="button" class="btn btn-cancel">Hủy bỏ</button>
+        <button type="submit" class="btn btn-save">Lưu thay đổi</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+<script>
+  function previewAvatar(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const preview = document.getElementById('avatarPreview');
+      const placeholder = document.getElementById('avatarPlaceholder');
+
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      placeholder.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+</script>
+
+</body>
+</html>
