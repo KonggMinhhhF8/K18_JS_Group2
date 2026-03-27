@@ -1,12 +1,3 @@
-
-  const menuToggle = document.getElementById('menuToggle');
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('overlay');
-
-  function toggleMenu() {
-    sidebar.classList.toggle('active');
-    overlay.classList.toggle('active');
-  }
-
-  menuToggle.addEventListener('click', toggleMenu);
-  overlay.addEventListener('click', toggleMenu);
+import { renderSidebar } from "./js/components/sidebar.js"
+const container=document.querySelector(".container");
+container.insertAdjacentHTML("afterbegin",renderSidebar("dashboard"));
