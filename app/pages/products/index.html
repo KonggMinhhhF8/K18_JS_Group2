@@ -26,7 +26,7 @@
         <input type="text" id="searchInput" placeholder="Tìm tên sản phẩm, mã SKU...">
       </div>
       <div class="user-actions">
-        <button class="btn-add" onclick="toggleModal()"><i class="fas fa-plus"></i> Thêm sản phẩm</button>
+        <button id="btnAddProduct" class="btn-add"><i class="fas fa-plus"></i> Thêm sản phẩm</button>
       </div>
     </header>
 
@@ -104,12 +104,12 @@
       <input type="text" placeholder="Giá bán" required>
       <input type="number" placeholder="Số lượng tồn kho" required>
       <div class="modal-buttons">
-        <button type="button" class="btn-cancel" onclick="toggleModal()">Hủy</button>
+        <button id="btnCloseProduct" type="button" class="btn-cancel">Hủy</button>
         <button type="submit" class="btn-add">Lưu sản phẩm</button>
       </div>
     </form>
   </div>
 </div>
-<script src="../products/products.js"></script>
+<script type="module" src="../products/products.js"></script>
 </body>
 </html>

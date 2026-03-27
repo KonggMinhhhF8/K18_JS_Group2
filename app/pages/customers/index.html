@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quản Lý Khách Hàng | ShopAdmin</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../../assets/css/style.css">
   <style>
       :root {
           --primary-color: #3498db;
@@ -89,7 +90,7 @@
       <div class="search-bar">
         <input type="text" placeholder="Tìm tên, email hoặc số điện thoại...">
       </div>
-      <button class="btn-add"><i class="fas fa-user-plus"></i> Thêm khách hàng</button>
+      <button id="btnAddCustomer" class="btn-add"><i class="fas fa-user-plus"></i> Thêm khách hàng</button>
     </header>
 
     <section class="stats">
@@ -190,6 +191,20 @@
     </section>
   </main>
 </div>
-<script src="../customers/customers.js"></script>
+<div id="customerModal" class="modal">
+    <div class="modal-content">
+        <h3>Thêm khách hàng mới</h3>
+        <form id="customerForm">
+            <input type="text" id="custName" placeholder="Tên khách hàng" required>
+            <input type="email" id="custEmail" placeholder="Email liên hệ" required>
+            <input type="text" id="custPhone" placeholder="Số điện thoại" required>
+            <div class="modal-buttons">
+                <button type="button" class="btn-cancel" id="btnCloseCustomer">Hủy</button>
+                <button type="submit" class="btn-add">Lưu khách hàng</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script type="module" src="../customers/customers.js"></script>
 </body>
 </html>
