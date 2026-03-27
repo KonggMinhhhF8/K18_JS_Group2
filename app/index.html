@@ -26,9 +26,12 @@
       }
       .sidebar h2 { margin-bottom: 30px; text-align: center; color: var(--primary-color); }
       .sidebar ul { list-style: none; }
-      .sidebar ul li { padding: 12px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; display: flex; align-items: center; }
+      .sidebar ul li { padding: 15px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; display: flex; align-items: center;transition: 0.3s; }
       .sidebar ul li i { margin-right: 15px; }
+      .sidebar ul li a { color: #ecf0f1; text-decoration: none; width: 100%; }
       .sidebar ul li.active { background: #34495e; color: var(--primary-color); }
+      .sidebar ul li:hover, .sidebar ul li.active { background: #34495e; color: var(--primary-color); }
+      .sidebar ul li:hover a, .sidebar ul li.active a { color: var(--primary-color); }
 
       /* Main Content */
       .main-content { flex: 1; margin-left: var(--sidebar-width); padding: 25px; width: 100%; transition: 0.3s; }
@@ -113,15 +116,7 @@
 <div class="overlay" id="overlay"></div>
 
 <div class="container">
-  <aside class="sidebar" id="sidebar">
-    <h2>ShopAdmin</h2>
-    <ul>
-      <li class="active"><i class="fas fa-home"></i> Tổng quan</li>
-      <li><i class="fas fa-box"></i> Sản phẩm</li>
-      <li><i class="fas fa-shopping-bag"></i> Đơn hàng</li>
-      <li><i class="fas fa-users"></i> Khách hàng</li>
-    </ul>
-  </aside>
+
 
   <main class="main-content">
     <header>
@@ -164,6 +159,6 @@
   </main>
 </div>
 
-<script src="./dashboard.js"></script>
+<script type="module" src="./dashboard.js"></script>
 </body>
 </html>
