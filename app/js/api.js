@@ -13,9 +13,14 @@ apiClient.interceptors.request.use(
     (config) => {
         const accessToken = localStorage.getItem("accessToken");
 
+        console.log("ACCESS TOKEN:", accessToken);
+        console.log("REQUEST URL:", `${config.baseURL}${config.url}`);
+
         if (accessToken) {
             config.headers.Authorization = `Bearer ${accessToken}`;
         }
+
+        console.log("REQUEST HEADERS:", config.headers);
 
         return config;
     },
@@ -23,9 +28,22 @@ apiClient.interceptors.request.use(
 );
 
 apiClient.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        console.log(
+            "API SUCCESS:",
+            response.status,
+            response.config.url,
+            response.data
+        );
+        return response;
+    },
     (error) => {
-        if (error.response?.status === 401) {
+        console.log("API ERROR STATUS:", error.response?.status);
+        console.log("API ERROR DATA:", error.response?.data);
+        console.log("API ERROR HEADERS:", error.response?.headers);
+        console.log("API ERROR CONFIG:", error.config);
+
+        if (error.response?.status === 401 || error.response?.status === 403) {
             localStorage.removeItem("accessToken");
             localStorage.removeItem("refreshToken");
             window.location.href = "/app/login.html";
