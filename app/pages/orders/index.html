@@ -118,7 +118,7 @@
       </div>
     </section>
 
-    <section class="table-container">
+    <section>
       <div class="order-controls">
         <div class="tabs">
           <button class="tab active">Tất cả</button>
@@ -131,66 +131,10 @@
         </div>
       </div>
 
-      <table>
-        <thead>
-        <tr>
-          <th>Mã đơn</th>
-          <th>Khách hàng</th>
-          <th>Sản phẩm</th>
-          <th>Tổng tiền</th>
-          <th>Trạng thái</th>
-          <th>Thao tác</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-          <td><strong>#ORD-7721</strong></td>
-          <td>Nguyễn Văn An<br><small>0912.345.xxx</small></td>
-          <td>iPhone 15 Pro Max (x1)</td>
-          <td>32.500.000đ</td>
-          <td><span class="badge shipping">Đang giao</span></td>
-          <td>
-            <button class="btn-action" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
-            <button class="btn-action" title="In hóa đơn"><i class="fas fa-print"></i></button>
-          </td>
-        </tr>
-        <tr>
-          <td><strong>#ORD-7722</strong></td>
-          <td>Lê Thị Bình<br><small>0988.777.xxx</small></td>
-          <td>AirPods Pro (x2), Case (x2)</td>
-          <td>11.200.000đ</td>
-          <td><span class="badge completed">Hoàn thành</span></td>
-          <td>
-            <button class="btn-action" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
-            <button class="btn-action" title="In hóa đơn"><i class="fas fa-print"></i></button>
-          </td>
-        </tr>
-        <tr>
-          <td><strong>#ORD-7723</strong></td>
-          <td>Phạm Minh Cường<br><small>0355.123.xxx</small></td>
-          <td>Ốp lưng Silicon</td>
-          <td>250.000đ</td>
-          <td><span class="badge pending">Chờ xử lý</span></td>
-          <td>
-            <button class="btn-action" title="Xử lý"><i class="fas fa-check"></i></button>
-            <button class="btn-action" title="Hủy đơn"><i class="fas fa-times"></i></button>
-          </td>
-        </tr>
-        <tr>
-          <td><strong>#ORD-7724</strong></td>
-          <td>Hoàng Anh Tuấn<br><small>0909.888.xxx</small></td>
-          <td>Sạc nhanh 20W</td>
-          <td>490.000đ</td>
-          <td><span class="badge cancelled">Đã hủy</span></td>
-          <td>
-            <button class="btn-action" title="Xem chi tiết"><i class="fas fa-eye"></i></button>
-          </td>
-        </tr>
-        </tbody>
-      </table>
+      <div id="orders-table-root"></div>
     </section>
   </main>
 </div>
-<script src="../orders/orders.js"></script>
+<script type="module" src="../orders/orders.js"></script>
 </body>
 </html>
