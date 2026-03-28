@@ -1,72 +1,42 @@
 
-
 export function renderSummary(config) {
-		// lấy dữ liệu từ config
-		const { containerId, items = [] } = config || {};
+		const {
+				containerId, // ID của element chứa
+				items = []
+		} = config || {};
 		
-		// tìm container
 		const container = document.getElementById(containerId);
 		if (!container) {
-				console.warn('[SummaryComponent] Container not found:', containerId);
+				console.warn('[SummaryComponent] Không tìm thấy container:', containerId);
 				return;
 		}
 		
-		//clear dữ liệu cũ
+		// clear nội ducng cũ
 		container.innerHTML = '';
 		
-		// tạo grid (wrapper)
-		const grid = document.createElement('div');
-		grid.className = 'stats-grid';
+		// tạo wrapper chính
+		const statsSection = document.createElement('section');
+		statsSection.className = 'stats';
 		
-		// loop render từng cardl
+		// render từng thẻ card
 		items.forEach(item => {
-				const {
-						label = '',          // tiêu đề
-						value = '',          // giá trị
-						trend,               // % (không set default để dễ check)
-						trendType = 'up',    // up | down
-						trendText = ''       // text thêm
-				} = item;
+				const { label = '', value = '' } = item;
 				
-				// tạo card
 				const card = document.createElement('div');
-				card.className = 'stat-card';
+				card.className = 'card';
 				
-				// Title
-				const titleEl = document.createElement('h4');
-				titleEl.textContent = label;
+				const h3 = document.createElement('h3');
+				h3.textContent = label;
 				
-				//Value
-				const valueEl = document.createElement('div');
-				valueEl.className = 'value';
-				valueEl.textContent = value;
+				const p = document.createElement('p');
+				p.textContent = value;
 				
-				card.appendChild(titleEl);
-				card.appendChild(valueEl);
+				card.appendChild(h3);
+				card.appendChild(p);
 				
-				// trend (Chỉ render nếu có data trend hoặc trendText)
-				if (trend !== undefined || trendText) {
-						const trendEl = document.createElement('div');
-						trendEl.className = `trend ${trendType}`;
-						
-						// icon
-						const icon = document.createElement('i');
-						icon.className = trendType === 'down' ? 'fas fa-arrow-down' : 'fas fa-arrow-up';
-						
-						// text
-						const trendNumberStr = trend !== undefined ? `${Math.abs(trend)}% ` : '';
-						const text = document.createTextNode(` ${trendNumberStr}${trendText}`);
-						
-						trendEl.appendChild(icon);
-						trendEl.appendChild(text);
-						
-						card.appendChild(trendEl);
-				}
-				
-				// thêm vào grid
-				grid.appendChild(card);
+				statsSection.appendChild(card);
 		});
 		
-		// Render ra DOM
-		container.appendChild(grid);
+		// dẩy vào DOM
+		container.appendChild(statsSection);
 }
