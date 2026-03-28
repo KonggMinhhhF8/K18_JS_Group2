@@ -17,7 +17,6 @@ async function request(endpoint, method = 'GET', payload = null) {
         headers
     };
 
-    // If there is data to be sent, then add the body.
     if (payload) {
         options.body = JSON.stringify(payload);
     }
@@ -29,7 +28,7 @@ async function request(endpoint, method = 'GET', payload = null) {
             // 401 -> Login page
             if (response.status === 401) {
                 localStorage.removeItem('token');
-                window.location.href = '../login/login.html';
+                window.location.href = '../login.html';
             }
 
             const errorData = await response.json().catch(() => ({}));

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng nhập | ShopAdmin</title>
+  <link rel="stylesheet" href="../app/assets/css/login.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-wrapper">
+      <div class="login-brand">
+        <h1>ShopAdmin</h1>
+        <p>Hệ thống quản trị bán hàng đơn giản, hiện đại và dễ sử dụng.</p>
+      </div>
+
+      <div class="login-card">
+        <div class="login-title">
+          <h2>Đăng nhập</h2>
+          <p>Chào mừng quay lại với ShopAdmin</p>
+        </div>
+
+        <form id="loginForm" novalidate>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <div class="input-wrap">
+              <i class="fas fa-envelope input-icon"></i>
+              <input type="email" id="email" name="email" placeholder="Nhập email..." />
+            </div>
+            <small class="error-message" id="emailError"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Mật khẩu</label>
+            <div class="input-wrap">
+              <i class="fas fa-lock input-icon"></i>
+              <input type="password" id="password" name="password" placeholder="Nhập mật khẩu..." />
+              <button type="button" class="toggle-password" id="togglePassword">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+            <small class="error-message" id="passwordError"></small>
+          </div>
+
+          <div class="form-options">
+            <label class="remember-me">
+              <input type="checkbox" id="remember" />
+              <span>Ghi nhớ đăng nhập</span>
+            </label>
+            <a href="#" class="forgot-link">Quên mật khẩu?</a>
+          </div>
+
+          <button type="submit" class="btn-login">Đăng nhập</button>
+          <p class="form-status" id="formStatus"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./login.js"></script>
+</body>
+</html>
