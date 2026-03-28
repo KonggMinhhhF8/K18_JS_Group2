@@ -1,52 +1,63 @@
-const BASE_URL = 'https://k305jhbh09.execute-api.ap-southeast-1.amazonaws.com';
+import axios from "https://cdn.jsdelivr.net/npm/axios@1.6.8/+esm";
 
-async function request(endpoint, method = 'GET', payload = null) {
-    const url = `${BASE_URL}${endpoint}`;
+const BASE_URL = "https://k305jhbh09.execute-api.ap-southeast-1.amazonaws.com";
 
-    const headers = {
-        'Content-Type': 'application/json'
-    };
+const apiClient = axios.create({
+    baseURL: BASE_URL,
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
 
-    const token = localStorage.getItem('token');
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
+apiClient.interceptors.request.use(
+    (config) => {
+        const accessToken = localStorage.getItem("accessToken");
 
-    const options = {
-        method,
-        headers
-    };
-
-    if (payload) {
-        options.body = JSON.stringify(payload);
-    }
-
-    try {
-        const response = await fetch(url, options);
-
-        if (!response.ok) {
-            // 401 -> Login page
-            if (response.status === 401) {
-                localStorage.removeItem('token');
-                window.location.href = '../login.html';
-            }
-
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'Lỗi hệ thống');
+        if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`;
         }
 
-        return await response.json();
-    } catch (error) {
-        console.error(`[API Error] ${method} ${url}:`, error.message);
-        throw error;
-    }
-}
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
 
-// Export shared methods
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            window.location.href = "/app/login.html";
+        }
+
+        return Promise.reject(error);
+    }
+);
+
 export const api = {
-    get: (endpoint) => request(endpoint, 'GET'),
-    post: (endpoint, data) => request(endpoint, 'POST', data),
-    put: (endpoint, data) => request(endpoint, 'PUT', data),
-    patch: (endpoint, data) => request(endpoint, 'PATCH', data),
-    delete: (endpoint) => request(endpoint, 'DELETE'),
+    get: async (endpoint, config = {}) => {
+        const response = await apiClient.get(endpoint, config);
+        return response.data;
+    },
+
+    post: async (endpoint, data = {}, config = {}) => {
+        const response = await apiClient.post(endpoint, data, config);
+        return response.data;
+    },
+
+    put: async (endpoint, data = {}, config = {}) => {
+        const response = await apiClient.put(endpoint, data, config);
+        return response.data;
+    },
+
+    patch: async (endpoint, data = {}, config = {}) => {
+        const response = await apiClient.patch(endpoint, data, config);
+        return response.data;
+    },
+
+    delete: async (endpoint, config = {}) => {
+        const response = await apiClient.delete(endpoint, config);
+        return response.data;
+    },
 };
