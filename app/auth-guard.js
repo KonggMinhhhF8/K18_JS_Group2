@@ -1,3 +1,5 @@
+import axios from "https://cdn.jsdelivr.net/npm/axios@1.6.8/+esm";
+
 function getAccessToken() {
     return localStorage.getItem("accessToken");
 }
@@ -36,22 +38,24 @@ async function refreshAccessToken() {
     if (!refreshToken) return false;
 
     try {
-        const response = await fetch("https://k305jhbh09.execute-api.ap-southeast-1.amazonaws.com/auth/refresh-token",{            
-         method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ refreshToken }),
-        });
+        const response = await axios.post(
+            "https://k305jhbh09.execute-api.ap-southeast-1.amazonaws.com/auth/refresh-token",
+            { refreshToken },
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            }
+        );
 
-        if (!response.ok) return false;
+        const { accessToken, refreshToken: newRefreshToken } = response.data;
 
-        const data = await response.json();
-        localStorage.setItem("accessToken", data.accessToken);
-        localStorage.setItem("refreshToken", data.refreshToken);
+        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("refreshToken", newRefreshToken);
 
         return true;
-    } catch {
+    } catch (error) {
+        console.log("REFRESH TOKEN ERROR:", error);
         return false;
     }
 }
@@ -61,7 +65,7 @@ async function requireAuth() {
 
     if (!accessToken) {
         clearTokens();
-        window.location.href = "../app/login.html";
+        window.location.href = "/app/login.html";
         return;
     }
 
@@ -70,7 +74,8 @@ async function requireAuth() {
 
         if (!refreshed) {
             clearTokens();
-            window.location.href = "../app/login.html";
+            window.location.href = "/app/login.html";
+            return;
         }
     }
 }
