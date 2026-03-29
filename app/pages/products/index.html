@@ -53,9 +53,11 @@
   <div class="modal-content">
     <h3>Thêm sản phẩm mới</h3>
     <form id="productForm">
-      <input type="text" placeholder="Tên sản phẩm" required>
-      <input type="text" placeholder="Giá bán" required>
-      <input type="number" placeholder="Số lượng tồn kho" required>
+      <input id="productName" name="name" type="text" placeholder="Tên sản phẩm" required>
+      <input id="productCategory" name="category" type="text" placeholder="Danh mục" required>
+      <input id="productPrice" name="price" type="number" placeholder="Giá bán" required>
+      <input id="productStock" name="stock" type="number" placeholder="Số lượng tồn kho" required>
+
       <div class="modal-buttons">
         <button id="btnCloseProduct" type="button" class="btn-cancel">Hủy</button>
         <button type="submit" class="btn-add">Lưu sản phẩm</button>
