@@ -1,6 +1,8 @@
 import { openModal, closeModal } from "../../js/components/modal.js";
 import { renderTable } from "../../js/components/table.js";
 import { api } from "../../js/api.js";
+import { renderSidebar } from "../../js/components/sidebar.js";
+const container = document.querySelector(".container");
 
 const modalId = "productModal";
 const productsEndpoint = "/products";
@@ -45,6 +47,8 @@ const columns = [
         render: (_, row) => createActionButtons(row),
     },
 ];
+container.insertAdjacentHTML("afterbegin", renderSidebar("products"));
+
 
 function formatMoney(value) {
     const amount = Number.isFinite(value) ? value : toNumber(value);
@@ -461,7 +465,7 @@ function createActionButtons(product) {
     editButton.title = "Chỉnh sửa";
     editButton.innerHTML = '<i class="fas fa-edit"></i>';
     editButton.addEventListener("click", () => {
-        console.log("Chỉnh sửa sản phẩm:", product.id);
+        goToEditProduct(product);
     });
 
     const deleteButton = document.createElement("button");
@@ -757,4 +761,12 @@ if (document.readyState !== "loading") {
     initProductsPage();
 } else {
     document.addEventListener("DOMContentLoaded", initProductsPage);
+}
+function goToEditProduct(product) {
+    if (!product) return;
+
+    sessionStorage.setItem("editingProduct", JSON.stringify(product));
+    window.location.href = `./editproduct.html?id=${encodeURIComponent(
+        product.id
+    )}`;
 }
