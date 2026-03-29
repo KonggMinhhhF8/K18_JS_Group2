@@ -28,6 +28,24 @@
       .sidebar ul li { padding: 15px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; color: #ecf0f1; transition: 0.3s; }
       .sidebar ul li:hover, .sidebar ul li.active { background: #34495e; color: var(--primary-color); }
       .sidebar ul li i { margin-right: 12px; width: 20px; }
+      .sidebar ul li a {
+                color: #ecf0f1;
+                text-decoration: none;
+                width: 100%;
+            }
+            .sidebar ul li.active {
+                background: #34495e;
+                color: var(--primary-color);
+            }
+            .sidebar ul li:hover,
+            .sidebar ul li.active {
+                background: #34495e;
+                color: var(--primary-color);
+            }
+            .sidebar ul li:hover a,
+            .sidebar ul li.active a {
+                color: var(--primary-color);
+            }
 
       /* Main Content */
       .main-content { flex: 1; padding: 30px; }
@@ -74,136 +92,38 @@
 <body>
 
 <div class="container">
-  <aside class="sidebar">
-    <h2>ShopAdmin</h2>
-    <ul>
-      <li><i class="fas fa-home"></i> Tổng quan</li>
-      <li><i class="fas fa-box"></i> Sản phẩm</li>
-      <li><i class="fas fa-shopping-cart"></i> Đơn hàng</li>
-      <li class="active"><i class="fas fa-users"></i> Khách hàng</li>
-      <li><i class="fas fa-chart-line"></i> Báo cáo</li>
-    </ul>
-  </aside>
 
-  <main class="main-content">
-    <header>
-      <div class="search-bar">
-        <input type="text" placeholder="Tìm tên, email hoặc số điện thoại...">
-      </div>
-      <button id="btnAddCustomer" class="btn-add"><i class="fas fa-user-plus"></i> Thêm khách hàng</button>
-    </header>
 
-    <section class="stats">
-      <div class="card">
-        <h3>Tổng khách hàng</h3>
-        <p>850</p>
-      </div>
-      <div class="card">
-        <h3>Khách hàng mới (Tháng)</h3>
-        <p>42</p>
-      </div>
-      <div class="card">
-        <h3>Tỉ lệ quay lại</h3>
-        <p>65%</p>
-      </div>
-    </section>
+<main class="main-content">
+  <header>
+    <div class="search-bar">
+      <input id="customerSearchInput" type="text" placeholder="Tìm tên, email hoặc số điện thoại...">
+    </div>
+    <button id="btnAddCustomer" class="btn-add">
+      <i class="fas fa-user-plus"></i> Thêm khách hàng
+    </button>
+  </header>
 
-    <section class="table-container">
-      <div class="table-header">
-        <h3>Danh sách khách hàng</h3>
-        <select style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
-          <option>Hạng: Tất cả</option>
-          <option>Hạng: Vàng</option>
-          <option>Hạng: Bạc</option>
-        </select>
-      </div>
-      <table>
-        <thead>
-        <tr>
-          <th>Khách hàng</th>
-          <th>Liên hệ</th>
-          <th>Hạng</th>
-          <th>Đơn hàng</th>
-          <th>Tổng chi tiêu</th>
-          <th>Thao tác</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-          <td>
-            <div class="cust-info">
-              <div class="avatar" style="background: #ebf5fb; color: #3498db;">NA</div>
-              <div>
-                <strong>Nguyễn Anh</strong><br>
-                <small>ID: CUST-001</small>
-              </div>
-            </div>
-          </td>
-          <td>anh.nguyen@email.com<br><small>0912.345.xxx</small></td>
-          <td><span class="tier gold">VÀNG</span></td>
-          <td>25</td>
-          <td><strong>45.200.000đ</strong></td>
-          <td>
-            <button class="btn-action" title="Lịch sử mua hàng"><i class="fas fa-history"></i></button>
-            <button class="btn-action" title="Sửa"><i class="fas fa-user-edit"></i></button>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <div class="cust-info">
-              <div class="avatar" style="background: #fdf2e9; color: #e67e22;">TL</div>
-              <div>
-                <strong>Trần Lan</strong><br>
-                <small>ID: CUST-002</small>
-              </div>
-            </div>
-          </td>
-          <td>lan.tran@email.com<br><small>0988.777.xxx</small></td>
-          <td><span class="tier silver">BẠC</span></td>
-          <td>12</td>
-          <td><strong>18.500.000đ</strong></td>
-          <td>
-            <button class="btn-action" title="Lịch sử mua hàng"><i class="fas fa-history"></i></button>
-            <button class="btn-action" title="Sửa"><i class="fas fa-user-edit"></i></button>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <div class="cust-info">
-              <div class="avatar" style="background: #f4f6f7; color: #7f8c8d;">VD</div>
-              <div>
-                <strong>Vũ Duy</strong><br>
-                <small>ID: CUST-003</small>
-              </div>
-            </div>
-          </td>
-          <td>duy.vu@email.com<br><small>0355.999.xxx</small></td>
-          <td><span class="tier bronze">ĐỒNG</span></td>
-          <td>3</td>
-          <td><strong>2.100.000đ</strong></td>
-          <td>
-            <button class="btn-action" title="Lịch sử mua hàng"><i class="fas fa-history"></i></button>
-            <button class="btn-action" title="Sửa"><i class="fas fa-user-edit"></i></button>
-          </td>
-        </tr>
-        </tbody>
-      </table>
-    </section>
-  </main>
+  <section id="customers-stats-root" class="stats"></section>
+
+  <div id="customers-table-root"></div>
+</main>
 </div>
 <div id="customerModal" class="modal">
-    <div class="modal-content">
-        <h3>Thêm khách hàng mới</h3>
-        <form id="customerForm">
-            <input type="text" id="custName" placeholder="Tên khách hàng" required>
-            <input type="email" id="custEmail" placeholder="Email liên hệ" required>
-            <input type="text" id="custPhone" placeholder="Số điện thoại" required>
-            <div class="modal-buttons">
-                <button type="button" class="btn-cancel" id="btnCloseCustomer">Hủy</button>
-                <button type="submit" class="btn-add">Lưu khách hàng</button>
-            </div>
-        </form>
-    </div>
+  <div class="modal-content">
+    <h3>Thêm khách hàng mới</h3>
+    <form id="customerForm">
+      <input type="text" id="custName" placeholder="Tên khách hàng" required>
+      <input type="email" id="custEmail" placeholder="Email liên hệ" required>
+      <input type="text" id="custPhone" placeholder="Số điện thoại">
+      <input type="text" id="custAddress" placeholder="Địa chỉ">
+
+      <div class="modal-buttons">
+        <button type="button" class="btn-cancel" id="btnCloseCustomer">Hủy</button>
+        <button type="submit" class="btn-add">Lưu khách hàng</button>
+      </div>
+    </form>
+  </div>
 </div>
 <script type="module" src="../customers/customers.js"></script>
 </body>
