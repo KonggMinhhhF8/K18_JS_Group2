@@ -1,4 +1,8 @@
 ﻿import { renderTable } from '../../js/components/table.js';
+import { api } from '../../js/api.js';
+
+const ordersEndpoint = '/orders';
+let ordersData = [];
 
 function formatMoney(value) {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
@@ -150,15 +154,6 @@ function createActions(order) {
     return fragment;
 }
 
-const ordersData = [
-    { id: '#ORD-7721', customer: 'Nguyễn Văn An', phone: '0912.345.xxx', products: 'iPhone 15 Pro Max (x1)', total: 32500000, status: 'shipping', date: '2026-03-24' },
-    { id: '#ORD-7722', customer: 'Lê Thị Bình', phone: '0988.777.xxx', products: 'AirPods Pro (x2), Case (x2)', total: 11200000, status: 'completed', date: '2026-03-22' },
-    { id: '#ORD-7723', customer: 'Phạm Minh Cường', phone: '0355.123.xxx', products: 'Ốp lưng Silicon', total: 250000, status: 'pending', date: '2026-03-25' },
-    { id: '#ORD-7724', customer: 'Hoàng Anh Tuấn', phone: '0909.888.xxx', products: 'Sạc nhanh 20W', total: 490000, status: 'cancelled', date: '2026-03-20' },
-    { id: '#ORD-7725', customer: 'Trần Văn Dũng', phone: '0933.112.xxx', products: 'MacBook Pro 14" (x1)', total: 57900000, status: 'shipping', date: '2026-03-21' },
-    { id: '#ORD-7726', customer: 'Ngô Thị Hà', phone: '0916.876.xxx', products: 'Huawei Watch (x1)', total: 5200000, status: 'completed', date: '2026-03-19' }
-];
-
 const filters = {
     keyword: '',
     status: 'all',
@@ -188,6 +183,30 @@ const columns = [
     { key: 'status', label: 'Trạng thái', render: status => createStatusNode(status) },
     { key: 'actions', label: 'Thao tác', render: (_, row) => createActions(row) }
 ];
+
+async function loadOrders() {
+    try {
+        const data = await api.get(ordersEndpoint);
+
+        if (Array.isArray(data)) {
+            ordersData = data;
+        } else if (Array.isArray(data?.items)) {
+            ordersData = data.items;
+        } else if (Array.isArray(data?.data)) {
+            ordersData = data.data;
+        } else {
+            ordersData = [];
+        }
+
+    } catch (error) {
+        console.error('Không thể tải dữ liệu đơn hàng:', error);
+        ordersData = [];
+        window.alert('Lỗi khi tải dữ liệu đơn hàng từ API. Vui lòng thử lại.');
+    }
+
+    updateStats();
+    renderOrders();
+}
 
 function updateStats() {
     const total = ordersData.length;
@@ -313,10 +332,9 @@ function initControls() {
     });
 }
 
-function init() {
-    updateStats();
+async function init() {
     initControls();
-    renderOrders();
+    await loadOrders();
 }
 
 if (document.readyState !== 'loading') {
