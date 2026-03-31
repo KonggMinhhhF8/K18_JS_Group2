@@ -5,8 +5,6 @@ container.insertAdjacentHTML("afterbegin", renderSidebar("products"));
 
 const productsEndpoint = "/products";
 const categoriesEndpoint = "/categories";
-const placeholderImage =
-    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='45' height='45' viewBox='0 0 45 45'%3E%3Crect width='45' height='45' rx='8' fill='%23e9eef5'/%3E%3Cpath d='M14 29l5.4-5.4a1.5 1.5 0 0 1 2.1 0l2.7 2.7 6.6-6.6a1.5 1.5 0 0 1 2.1 0L36 23v6.5A2.5 2.5 0 0 1 33.5 32h-21A2.5 2.5 0 0 1 10 29.5V18a2.5 2.5 0 0 1 2.5-2.5h21A2.5 2.5 0 0 1 36 18v1' fill='none' stroke='%2391a0b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='17' cy='18.5' r='2.5' fill='%2391a0b8'/%3E%3C/svg%3E";
 
 const state = {
     product: null,
