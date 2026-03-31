@@ -5,6 +5,7 @@ import { api } from "../../js/api.js";
 
 const container = document.querySelector(".container");
 
+// Render Sidebar
 container.insertAdjacentHTML("afterbegin", renderSidebar("reports"));
 
 const state = {
@@ -17,7 +18,7 @@ const state = {
     isLoading: false
 };
 
-const reportsEndpoint = "/reports";
+const ordersEndpoint = "/orders";
 
 // Formatter
 function formatMoney(value) {
@@ -30,16 +31,14 @@ function formatMoney(value) {
 
 function createStatusNode(status) {
     const span = document.createElement("span");
-    if (status === "Còn hàng" || status === "In Stock") {
+    if (status === "Còn hàng") {
         span.style.color = "#2ecc71";
         span.style.fontWeight = "bold";
-    } else if (status === "Sắp hết" || status === "Low Stock") {
+    } else {
         span.style.color = "#e74c3c";
         span.style.fontWeight = "bold";
-    } else {
-        span.style.color = "#7f8c8d";
     }
-    span.textContent = status || "Không rõ";
+    span.textContent = status;
     return span;
 }
 
@@ -50,7 +49,8 @@ const columns = [
     { key: "status", label: "Tình trạng", render: (value) => createStatusNode(value) }
 ];
 
-// Render the interface.
+
+// Render the interface
 function updateSummaryComponent() {
     renderSummary({
         containerId: "reports-summary-root",
@@ -65,7 +65,7 @@ function updateTopProductsTable() {
         columns: columns,
         rows: state.topProducts,
         tableId: "top-products-table",
-        emptyMessage: "Không có dữ liệu sản phẩm trong khoảng thời gian này."
+        emptyMessage: "Không có phát sinh giao dịch nào trong khoảng thời gian này."
     });
 }
 
@@ -78,16 +78,17 @@ function renderCharts() {
     const catCtx = document.getElementById("categoryChart");
 
     if (!revCtx || !catCtx) return;
+
     if (revenueChartInstance) revenueChartInstance.destroy();
     if (categoryChartInstance) categoryChartInstance.destroy();
 
     revenueChartInstance = new Chart(revCtx, {
         type: 'line',
         data: {
-            labels: state.chartData.revenue.labels || [],
+            labels: state.chartData.revenue.labels,
             datasets: [{
                 label: 'Doanh thu (VNĐ)',
-                data: state.chartData.revenue.data || [],
+                data: state.chartData.revenue.data,
                 borderColor: '#3498db',
                 backgroundColor: 'rgba(52, 152, 219, 0.2)',
                 tension: 0.4,
@@ -100,7 +101,7 @@ function renderCharts() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    suggestedMax: 28000000,
+                    suggestedMax: 1000000,
                     ticks: {
                         callback: function(value) {
                             return new Intl.NumberFormat("vi-VN", {
@@ -117,9 +118,9 @@ function renderCharts() {
     categoryChartInstance = new Chart(catCtx, {
         type: 'doughnut',
         data: {
-            labels: state.chartData.categories.labels || [],
+            labels: state.chartData.categories.labels,
             datasets: [{
-                data: state.chartData.categories.data || [],
+                data: state.chartData.categories.data,
                 backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#34495e'],
                 borderWidth: 0
             }]
@@ -131,38 +132,115 @@ function renderCharts() {
     });
 }
 
-// Main logic call API
+function processReportData(allOrders, startDateStr, endDateStr) {
+    const start = startDateStr ? new Date(startDateStr) : new Date(0);
+    const end = endDateStr ? new Date(endDateStr) : new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const validOrders = allOrders.filter(order => {
+        if (order.status === "cancel") return false;
+        if (!order.date) return false;
+
+        const orderDate = new Date(order.date);
+        return orderDate >= start && orderDate <= end;
+    });
+
+    let totalRevenue = 0;
+    let uniqueCustomers = new Set();
+
+    validOrders.forEach(order => {
+        const qty = order.amount || 0;
+        const price = order.product?.price || 0;
+        totalRevenue += (qty * price);
+
+        if (order.customer?.id) {
+            uniqueCustomers.add(order.customer.id);
+        }
+    });
+
+    const estimatedProfit = totalRevenue * 0.25;
+
+    state.summaryStats = [
+        { label: "Doanh thu", value: formatMoney(totalRevenue) },
+        { label: "Đơn hàng hợp lệ", value: validOrders.length.toString() },
+        { label: "Lợi nhuận (Ước tính)", value: formatMoney(estimatedProfit) },
+        { label: "Khách mua hàng", value: uniqueCustomers.size.toString() }
+    ];
+
+    const revenueByDate = {};
+    validOrders.forEach(order => {
+        const dateStr = order.date.split('T')[0];
+        const rev = (order.amount || 0) * (order.product?.price || 0);
+        revenueByDate[dateStr] = (revenueByDate[dateStr] || 0) + rev;
+    });
+
+    const sortedDates = Object.keys(revenueByDate).sort();
+    const last7Dates = sortedDates.slice(-7);
+
+    state.chartData.revenue.labels = last7Dates;
+    state.chartData.revenue.data = last7Dates.map(d => revenueByDate[d]);
+
+    const categoryRev = {};
+    validOrders.forEach(order => {
+        const catName = order.product?.category?.name || 'Khác';
+        const rev = (order.amount || 0) * (order.product?.price || 0);
+        categoryRev[catName] = (categoryRev[catName] || 0) + rev;
+    });
+
+    state.chartData.categories.labels = Object.keys(categoryRev);
+    state.chartData.categories.data = Object.values(categoryRev);
+
+    const productStats = {};
+    validOrders.forEach(order => {
+        const p = order.product;
+        if (!p) return;
+
+        if (!productStats[p.id]) {
+            productStats[p.id] = {
+                name: p.name,
+                quantity: 0,
+                revenue: 0,
+                stock: p.remaining || 0
+            };
+        }
+        productStats[p.id].quantity += (order.amount || 0);
+        productStats[p.id].revenue += ((order.amount || 0) * (p.price || 0));
+        productStats[p.id].stock = p.remaining || 0;
+    });
+
+    state.topProducts = Object.values(productStats)
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 5)
+        .map(p => ({
+            name: p.name,
+            quantity: p.quantity,
+            revenue: p.revenue,
+            status: p.stock > 5 ? "Còn hàng" : "Sắp hết"
+        }));
+}
+
+// Call API
 async function loadReports() {
     try {
         const startDate = document.getElementById("startDate")?.value || "";
         const endDate = document.getElementById("endDate")?.value || "";
 
-        const endpoint = `${reportsEndpoint}?startDate=${startDate}&endDate=${endDate}`;
+        const response = await api.get(ordersEndpoint);
+        const allOrders = response.data || response.body || response || [];
 
-        const response = await api.get(endpoint);
-
-        const payload = response.data || response.body || response;
-
-        state.summaryStats = payload.summary || [];
-        state.topProducts = payload.topProducts || [];
-        state.chartData = payload.chartData || {
-            revenue: { labels: [], data: [] },
-            categories: { labels: [], data: [] }
-        };
+        processReportData(allOrders, startDate, endDate);
 
         updateSummaryComponent();
         renderCharts();
         updateTopProductsTable();
 
     } catch (error) {
-        console.error("Lỗi khi tải dữ liệu báo cáo từ API:", error);
+        console.error("Lỗi khi tải dữ liệu đơn hàng để báo cáo:", error);
+        alert("Có lỗi xảy ra khi lấy dữ liệu báo cáo.");
 
         state.summaryStats = [];
         state.topProducts = [];
-        state.chartData = {
-            revenue: { labels: [], data: [] },
-            categories: { labels: [], data: [] }
-        };
+        state.chartData = { revenue: { labels: [], data: [] }, categories: { labels: [], data: [] } };
 
         updateSummaryComponent();
         renderCharts();
@@ -192,7 +270,6 @@ function setupFilters() {
 
 async function initReportsPage() {
     if (!document.getElementById("reports-summary-root")) return;
-
     setupFilters();
     await loadReports();
 }
