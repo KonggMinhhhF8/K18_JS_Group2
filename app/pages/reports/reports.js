@@ -274,7 +274,6 @@ async function initReportsPage() {
     await loadReports();
 }
 
-// Khởi chạy
 if (document.readyState !== "loading") {
     initReportsPage();
 } else {
