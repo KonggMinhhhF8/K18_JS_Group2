@@ -1,277 +1,520 @@
 import { renderSidebar } from "../../js/components/sidebar.js";
-import { renderSummary } from "../../js/components/summary.js";
 import { renderTable } from "../../js/components/table.js";
 import { api } from "../../js/api.js";
 
 const container = document.querySelector(".container");
-
-// Render Sidebar
 container.insertAdjacentHTML("afterbegin", renderSidebar("reports"));
 
+const ordersEndpoint = "/orders";
+const productsEndpoint = "/products";
+const customersEndpoint = "/customers";
+
 const state = {
-    summaryStats: [],
-    chartData: {
-        revenue: { labels: [], data: [] },
-        categories: { labels: [], data: [] }
-    },
-    topProducts: [],
-    isLoading: false
+    orders: [],
+    products: [],
+    customers: [],
+    revenueChart: null,
+    categoryChart: null,
 };
 
-const ordersEndpoint = "/orders";
+const topProductColumns = [
+    {
+        key: "name",
+        label: "Sản phẩm",
+        render: (_, row) => {
+            const strong = document.createElement("strong");
+            strong.textContent = row.name;
+            return strong;
+        },
+    },
+    {
+        key: "sold",
+        label: "Số lượng bán",
+        render: (value) => `${value}`,
+    },
+    {
+        key: "revenue",
+        label: "Doanh thu",
+        render: (value) => formatMoney(value),
+    },
+    {
+        key: "status",
+        label: "Tình trạng",
+        render: (value) => {
+            const span = document.createElement("span");
+            span.textContent = value.label;
+            span.style.color = value.color;
+            span.style.fontWeight = "600";
+            return span;
+        },
+    },
+];
 
-// Formatter
+function parseMaybeJson(value) {
+    if (typeof value !== "string") return value;
+
+    try {
+        return JSON.parse(value);
+    } catch {
+        return value;
+    }
+}
+
+function pickFirstValue(...values) {
+    return values.find((value) => {
+        if (value === undefined || value === null) return false;
+        if (typeof value === "string") return value.trim() !== "";
+        return true;
+    });
+}
+
+function toNumber(value) {
+    if (typeof value === "number") return value;
+
+    if (typeof value !== "string") {
+        return Number(value) || 0;
+    }
+
+    const digitsOnly = value.replace(/[^\d-]/g, "");
+    return Number(digitsOnly) || 0;
+}
+
 function formatMoney(value) {
-    const amount = Number(value) || 0;
+    const amount = toNumber(value);
+
     return new Intl.NumberFormat("vi-VN", {
         style: "currency",
         currency: "VND",
     }).format(amount);
 }
 
-function createStatusNode(status) {
-    const span = document.createElement("span");
-    if (status === "Còn hàng") {
-        span.style.color = "#2ecc71";
-        span.style.fontWeight = "bold";
-    } else {
-        span.style.color = "#e74c3c";
-        span.style.fontWeight = "bold";
+function extractList(payload, keys = []) {
+    const parsedPayload = parseMaybeJson(payload);
+
+    if (Array.isArray(parsedPayload)) return parsedPayload;
+
+    if (!parsedPayload || typeof parsedPayload !== "object") {
+        return [];
     }
-    span.textContent = status;
-    return span;
+
+    if (parsedPayload.body) {
+        const bodyList = extractList(parsedPayload.body, keys);
+        if (bodyList.length) return bodyList;
+    }
+
+    for (const key of keys) {
+        const value = parsedPayload[key];
+        if (Array.isArray(value)) return value;
+
+        if (value && typeof value === "object") {
+            const nestedList = extractList(value, keys);
+            if (nestedList.length) return nestedList;
+        }
+    }
+
+    return [];
 }
 
-const columns = [
-    { key: "name", label: "Sản phẩm" },
-    { key: "quantity", label: "Số lượng bán" },
-    { key: "revenue", label: "Doanh thu", render: (value) => formatMoney(value) },
-    { key: "status", label: "Tình trạng", render: (value) => createStatusNode(value) }
-];
+function normalizeStatus(status) {
+    const normalized = String(status || "pending")
+        .trim()
+        .toLowerCase();
 
+    if (["pending", "delivering", "done", "cancel"].includes(normalized)) {
+        return normalized;
+    }
 
-// Render the interface
-function updateSummaryComponent() {
-    renderSummary({
-        containerId: "reports-summary-root",
-        items: state.summaryStats
+    return "pending";
+}
+
+function normalizeCategory(category) {
+    if (typeof category === "string") {
+        return category.trim() || "Chưa phân loại";
+    }
+
+    if (category && typeof category === "object") {
+        return (
+            pickFirstValue(
+                category.name,
+                category.title,
+                category.label,
+                category.categoryName
+            ) || "Chưa phân loại"
+        );
+    }
+
+    return "Chưa phân loại";
+}
+
+function normalizeProduct(product, index) {
+    return {
+        id: pickFirstValue(product.id, product.productId, index + 1),
+        name: pickFirstValue(product.name, product.productName, "Chưa có tên"),
+        category: normalizeCategory(
+            pickFirstValue(
+                product.category,
+                product.categoryName,
+                product.productCategory
+            )
+        ),
+        price: toNumber(
+            pickFirstValue(
+                product.price,
+                product.salePrice,
+                product.sellingPrice,
+                0
+            )
+        ),
+        remaining: toNumber(
+            pickFirstValue(
+                product.remaining,
+                product.stock,
+                product.quantity,
+                0
+            )
+        ),
+    };
+}
+
+function normalizeCustomer(customer, index) {
+    return {
+        id: pickFirstValue(customer.id, customer.customerId, index + 1),
+        name: pickFirstValue(customer.name, "Chưa có tên"),
+    };
+}
+
+function normalizeOrder(order, index) {
+    const product = order.product || {};
+    const customer = order.customer || {};
+
+    const amount = toNumber(pickFirstValue(order.amount, order.quantity, 0));
+    const productPrice = toNumber(
+        pickFirstValue(product.price, order.price, 0)
+    );
+
+    return {
+        id: pickFirstValue(order.id, order.orderId, index + 1),
+        status: normalizeStatus(order.status),
+        amount,
+        total: toNumber(
+            pickFirstValue(
+                order.total,
+                order.totalAmount,
+                order.finalPrice,
+                amount * productPrice
+            )
+        ),
+        productId: pickFirstValue(product.id, order.productId, null),
+        productName: pickFirstValue(
+            product.name,
+            order.productName,
+            "Chưa có sản phẩm"
+        ),
+        customerId: pickFirstValue(customer.id, order.customerId, null),
+        createdAt: pickFirstValue(
+            order.createdAt,
+            order.date,
+            order.orderDate,
+            null
+        ),
+    };
+}
+
+function getFilteredOrdersByDate() {
+    const fromInput = document.getElementById("reportDateFrom");
+    const toInput = document.getElementById("reportDateTo");
+
+    const fromValue = fromInput?.value ? new Date(fromInput.value) : null;
+    const toValue = toInput?.value ? new Date(toInput.value) : null;
+
+    if (toValue) {
+        toValue.setHours(23, 59, 59, 999);
+    }
+
+    return state.orders.filter((order) => {
+        if (!order.createdAt) return true;
+
+        const orderDate = new Date(order.createdAt);
+        if (Number.isNaN(orderDate.getTime())) return true;
+
+        if (fromValue && orderDate < fromValue) return false;
+        if (toValue && orderDate > toValue) return false;
+
+        return true;
     });
 }
 
-function updateTopProductsTable() {
-    renderTable({
-        containerId: "top-products-table-root",
-        title: "Sản phẩm bán chạy nhất",
-        columns: columns,
-        rows: state.topProducts,
-        tableId: "top-products-table",
-        emptyMessage: "Không có phát sinh giao dịch nào trong khoảng thời gian này."
-    });
+function renderStats(orders) {
+    const root = document.getElementById("report-stats-root");
+    if (!root) return;
+
+    const revenue = orders
+        .filter((order) => order.status === "done")
+        .reduce((sum, order) => sum + order.total, 0);
+
+    const totalOrders = orders.length;
+    const estimatedProfit = Math.round(revenue * 0.2);
+    const newCustomers = state.customers.length;
+
+    root.innerHTML = `
+        <div class="stat-card">
+            <h4>Doanh thu</h4>
+            <div class="value">${formatMoney(revenue)}</div>
+            <div class="trend up"><i class="fas fa-arrow-up"></i> Tính từ dữ liệu hiện có</div>
+        </div>
+        <div class="stat-card">
+            <h4>Đơn hàng</h4>
+            <div class="value">${totalOrders}</div>
+            <div class="trend up"><i class="fas fa-arrow-up"></i> Tổng số đơn trong khoảng lọc</div>
+        </div>
+        <div class="stat-card">
+            <h4>Lợi nhuận</h4>
+            <div class="value">${formatMoney(estimatedProfit)}</div>
+            <div class="trend up"><i class="fas fa-arrow-up"></i> Ước tính 20% doanh thu</div>
+        </div>
+        <div class="stat-card">
+            <h4>Khách mới</h4>
+            <div class="value">${newCustomers}</div>
+            <div class="trend up"><i class="fas fa-arrow-up"></i> Tổng khách hàng hiện có</div>
+        </div>
+    `;
 }
 
-// chart.js
-let revenueChartInstance = null;
-let categoryChartInstance = null;
+function groupRevenueLast7Days(orders) {
+    const today = new Date();
+    const labels = [];
+    const totals = [];
 
-function renderCharts() {
-    const revCtx = document.getElementById("revenueChart");
-    const catCtx = document.getElementById("categoryChart");
+    for (let i = 6; i >= 0; i -= 1) {
+        const date = new Date();
+        date.setDate(today.getDate() - i);
 
-    if (!revCtx || !catCtx) return;
+        const label = date.toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+        });
 
-    if (revenueChartInstance) revenueChartInstance.destroy();
-    if (categoryChartInstance) categoryChartInstance.destroy();
+        const start = new Date(date);
+        start.setHours(0, 0, 0, 0);
 
-    revenueChartInstance = new Chart(revCtx, {
-        type: 'line',
+        const end = new Date(date);
+        end.setHours(23, 59, 59, 999);
+
+        const dayRevenue = orders
+            .filter((order) => {
+                if (!order.createdAt || order.status !== "done") return false;
+                const orderDate = new Date(order.createdAt);
+                return orderDate >= start && orderDate <= end;
+            })
+            .reduce((sum, order) => sum + order.total, 0);
+
+        labels.push(label);
+        totals.push(dayRevenue);
+    }
+
+    return { labels, totals };
+}
+
+function renderRevenueChart(orders) {
+    const canvas = document.getElementById("revenueChart");
+    if (!canvas || typeof Chart === "undefined") return;
+
+    const { labels, totals } = groupRevenueLast7Days(orders);
+
+    if (state.revenueChart) {
+        state.revenueChart.destroy();
+    }
+
+    state.revenueChart = new Chart(canvas.getContext("2d"), {
+        type: "line",
         data: {
-            labels: state.chartData.revenue.labels,
-            datasets: [{
-                label: 'Doanh thu (VNĐ)',
-                data: state.chartData.revenue.data,
-                borderColor: '#3498db',
-                backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                tension: 0.4,
-                fill: true
-            }]
+            labels,
+            datasets: [
+                {
+                    label: "Doanh thu (VNĐ)",
+                    data: totals,
+                    borderColor: "#3498db",
+                    backgroundColor: "rgba(52, 152, 219, 0.1)",
+                    fill: true,
+                    tension: 0.4,
+                },
+            ],
         },
         options: {
             responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    suggestedMax: 1000000,
-                    ticks: {
-                        callback: function(value) {
-                            return new Intl.NumberFormat("vi-VN", {
-                                style: "currency",
-                                currency: "VND",
-                            }).format(value);
-                        }
-                    }
-                }
-            }
-        }
-    });
-
-    categoryChartInstance = new Chart(catCtx, {
-        type: 'doughnut',
-        data: {
-            labels: state.chartData.categories.labels,
-            datasets: [{
-                data: state.chartData.categories.data,
-                backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#34495e'],
-                borderWidth: 0
-            }]
+            maintainAspectRatio: false,
         },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'bottom' } }
-        }
     });
 }
 
-function processReportData(allOrders, startDateStr, endDateStr) {
-    const start = startDateStr ? new Date(startDateStr) : new Date(0);
-    const end = endDateStr ? new Date(endDateStr) : new Date();
-    end.setHours(23, 59, 59, 999);
+function getCategoryBreakdown(orders) {
+    const map = new Map();
 
-    const validOrders = allOrders.filter(order => {
-        if (order.status === "cancel") return false;
-        if (!order.date) return false;
+    orders.forEach((order) => {
+        const product = state.products.find(
+            (item) => String(item.id) === String(order.productId)
+        );
+        const category = product?.category || "Khác";
 
-        const orderDate = new Date(order.date);
-        return orderDate >= start && orderDate <= end;
+        map.set(category, (map.get(category) || 0) + order.amount);
     });
 
-    let totalRevenue = 0;
-    let uniqueCustomers = new Set();
+    const labels = Array.from(map.keys());
+    const values = Array.from(map.values());
 
-    validOrders.forEach(order => {
-        const qty = order.amount || 0;
-        const price = order.product?.price || 0;
-        totalRevenue += (qty * price);
+    return { labels, values };
+}
 
-        if (order.customer?.id) {
-            uniqueCustomers.add(order.customer.id);
-        }
+function renderCategoryChart(orders) {
+    const canvas = document.getElementById("categoryChart");
+    if (!canvas || typeof Chart === "undefined") return;
+
+    const { labels, values } = getCategoryBreakdown(orders);
+
+    if (state.categoryChart) {
+        state.categoryChart.destroy();
+    }
+
+    state.categoryChart = new Chart(canvas.getContext("2d"), {
+        type: "doughnut",
+        data: {
+            labels: labels.length ? labels : ["Chưa có dữ liệu"],
+            datasets: [
+                {
+                    data: values.length ? values : [1],
+                    backgroundColor: [
+                        "#3498db",
+                        "#2ecc71",
+                        "#f1c40f",
+                        "#9b59b6",
+                        "#e67e22",
+                        "#1abc9c",
+                    ],
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+        },
+    });
+}
+
+function getTopProducts(orders) {
+    const map = new Map();
+
+    orders.forEach((order) => {
+        const product = state.products.find(
+            (item) => String(item.id) === String(order.productId)
+        );
+
+        const key = String(order.productId || order.productName);
+        const current = map.get(key) || {
+            name: order.productName,
+            sold: 0,
+            revenue: 0,
+            remaining: product?.remaining ?? 0,
+        };
+
+        current.name = product?.name || order.productName;
+        current.sold += order.amount;
+        current.revenue += order.total;
+        current.remaining = product?.remaining ?? current.remaining;
+
+        map.set(key, current);
     });
 
-    const estimatedProfit = totalRevenue * 0.25;
-
-    state.summaryStats = [
-        { label: "Doanh thu", value: formatMoney(totalRevenue) },
-        { label: "Đơn hàng hợp lệ", value: validOrders.length.toString() },
-        { label: "Lợi nhuận (Ước tính)", value: formatMoney(estimatedProfit) },
-        { label: "Khách mua hàng", value: uniqueCustomers.size.toString() }
-    ];
-
-    const revenueByDate = {};
-    validOrders.forEach(order => {
-        const dateStr = order.date.split('T')[0];
-        const rev = (order.amount || 0) * (order.product?.price || 0);
-        revenueByDate[dateStr] = (revenueByDate[dateStr] || 0) + rev;
-    });
-
-    const sortedDates = Object.keys(revenueByDate).sort();
-    const last7Dates = sortedDates.slice(-7);
-
-    state.chartData.revenue.labels = last7Dates;
-    state.chartData.revenue.data = last7Dates.map(d => revenueByDate[d]);
-
-    const categoryRev = {};
-    validOrders.forEach(order => {
-        const catName = order.product?.category?.name || 'Khác';
-        const rev = (order.amount || 0) * (order.product?.price || 0);
-        categoryRev[catName] = (categoryRev[catName] || 0) + rev;
-    });
-
-    state.chartData.categories.labels = Object.keys(categoryRev);
-    state.chartData.categories.data = Object.values(categoryRev);
-
-    const productStats = {};
-    validOrders.forEach(order => {
-        const p = order.product;
-        if (!p) return;
-
-        if (!productStats[p.id]) {
-            productStats[p.id] = {
-                name: p.name,
-                quantity: 0,
-                revenue: 0,
-                stock: p.remaining || 0
-            };
-        }
-        productStats[p.id].quantity += (order.amount || 0);
-        productStats[p.id].revenue += ((order.amount || 0) * (p.price || 0));
-        productStats[p.id].stock = p.remaining || 0;
-    });
-
-    state.topProducts = Object.values(productStats)
-        .sort((a, b) => b.quantity - a.quantity)
-        .slice(0, 5)
-        .map(p => ({
-            name: p.name,
-            quantity: p.quantity,
-            revenue: p.revenue,
-            status: p.stock > 5 ? "Còn hàng" : "Sắp hết"
+    return Array.from(map.values())
+        .sort((a, b) => b.sold - a.sold)
+        .slice(0, 10)
+        .map((item) => ({
+            ...item,
+            status:
+                item.remaining > 10
+                    ? { label: "Còn hàng", color: "#2ecc71" }
+                    : { label: "Sắp hết", color: "#e74c3c" },
         }));
 }
 
-// Call API
-async function loadReports() {
+function renderTopProductsTable(orders) {
+    renderTable({
+        containerId: "top-products-root",
+        title: "Sản phẩm bán chạy nhất",
+        columns: topProductColumns,
+        rows: getTopProducts(orders),
+        tableId: "top-products-table",
+        emptyMessage: "Không có dữ liệu sản phẩm",
+    });
+}
+
+async function loadReportsData() {
     try {
-        const startDate = document.getElementById("startDate")?.value || "";
-        const endDate = document.getElementById("endDate")?.value || "";
+        const [ordersResponse, productsResponse, customersResponse] =
+            await Promise.all([
+                api.get(ordersEndpoint),
+                api.get(productsEndpoint),
+                api.get(customersEndpoint),
+            ]);
 
-        const response = await api.get(ordersEndpoint);
-        const allOrders = response.data || response.body || response || [];
+        state.orders = extractList(ordersResponse, [
+            "data",
+            "items",
+            "orders",
+            "result",
+            "results",
+        ]).map(normalizeOrder);
+        state.products = extractList(productsResponse, [
+            "data",
+            "items",
+            "products",
+            "result",
+            "results",
+        ]).map(normalizeProduct);
+        state.customers = extractList(customersResponse, [
+            "data",
+            "items",
+            "customers",
+            "result",
+            "results",
+        ]).map(normalizeCustomer);
 
-        processReportData(allOrders, startDate, endDate);
-
-        updateSummaryComponent();
-        renderCharts();
-        updateTopProductsTable();
-
+        applyFilters();
     } catch (error) {
-        console.error("Lỗi khi tải dữ liệu đơn hàng để báo cáo:", error);
-        alert("Có lỗi xảy ra khi lấy dữ liệu báo cáo.");
-
-        state.summaryStats = [];
-        state.topProducts = [];
-        state.chartData = { revenue: { labels: [], data: [] }, categories: { labels: [], data: [] } };
-
-        updateSummaryComponent();
-        renderCharts();
-        updateTopProductsTable();
+        console.error("Không thể tải dữ liệu báo cáo:", error);
+        renderStats([]);
+        renderTopProductsTable([]);
     }
+}
+
+function applyFilters() {
+    const filteredOrders = getFilteredOrdersByDate();
+
+    renderStats(filteredOrders);
+    renderRevenueChart(filteredOrders);
+    renderCategoryChart(filteredOrders);
+    renderTopProductsTable(filteredOrders);
 }
 
 function setupFilters() {
-    const startDateInput = document.getElementById("startDate");
-    const endDateInput = document.getElementById("endDate");
+    const filterBtn = document.getElementById("btnFilterReports");
+    const fromInput = document.getElementById("reportDateFrom");
+    const toInput = document.getElementById("reportDateTo");
 
-    if (startDateInput && endDateInput) {
-        const today = new Date().toISOString().split('T')[0];
-        const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-
-        startDateInput.value = firstDayOfMonth;
-        endDateInput.value = today;
+    if (filterBtn) {
+        filterBtn.addEventListener("click", applyFilters);
     }
 
-    const btnFilter = document.getElementById("btnFilter");
-    if (btnFilter) {
-        btnFilter.addEventListener("click", () => {
-            loadReports();
-        });
-    }
+    [fromInput, toInput].forEach((input) => {
+        if (!input) return;
+        input.addEventListener("change", applyFilters);
+    });
 }
 
 async function initReportsPage() {
-    if (!document.getElementById("reports-summary-root")) return;
+    if (!document.getElementById("report-stats-root")) return;
+
     setupFilters();
-    await loadReports();
+    await loadReportsData();
 }
 
 if (document.readyState !== "loading") {
