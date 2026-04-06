@@ -1,344 +1,403 @@
-﻿import { renderTable } from '../../js/components/table.js';
-import { api } from '../../js/api.js';
+﻿import { renderSidebar } from "../../js/components/sidebar.js";
+import { renderTable } from "../../js/components/table.js";
+import { api } from "../../js/api.js";
 
-const ordersEndpoint = '/orders';
-let ordersData = [];
+const container = document.querySelector(".container");
+container.insertAdjacentHTML("afterbegin", renderSidebar("orders"));
 
-function formatMoney(value) {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
-}
+const ordersEndpoint = "/orders";
 
-function formatDate(value) {
-    if (!value) return '-';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString('vi-VN');
-}
+const state = {
+    allOrders: [],
+    searchTerm: "",
+    selectedStatus: "ALL",
+    loadError: "",
+};
 
-function statusLabel(status) {
-    const mapping = {
-        pending: { text: 'Chờ xử lý', className: 'badge pending' },
-        shipping: { text: 'Đang giao', className: 'badge shipping' },
-        completed: { text: 'Hoàn thành', className: 'badge completed' },
-        cancelled: { text: 'Đã hủy', className: 'badge cancelled' }
-    };
-    return mapping[status] || { text: status || 'Không xác định', className: 'badge' };
-}
+const statusLabelMap = {
+    pending: "CHỜ XỬ LÝ",
+    delivering: "ĐANG GIAO",
+    done: "HOÀN THÀNH",
+    cancel: "ĐÃ HỦY",
+};
 
-function createStatusNode(status) {
-    const item = statusLabel(status);
-    const span = document.createElement('span');
-    span.className = item.className;
-    span.textContent = item.text;
-    return span;
-}
-
-function getOverlayElement() {
-    let overlay = document.getElementById('order-detail-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'order-detail-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100%';
-        overlay.style.height = '100%';
-        overlay.style.backgroundColor = 'rgba(0,0,0,0.6)';
-        overlay.style.zIndex = '9999';
-        overlay.style.display = 'none';
-        overlay.style.justifyContent = 'center';
-        overlay.style.alignItems = 'center';
-        overlay.style.padding = '20px';
-        overlay.style.overflowY = 'auto';
-
-        const card = document.createElement('div');
-        card.id = 'order-detail-card';
-        card.style.backgroundColor = '#fff';
-        card.style.borderRadius = '10px';
-        card.style.maxWidth = '540px';
-        card.style.width = '100%';
-        card.style.padding = '20px';
-        card.style.boxShadow = '0 6px 20px rgba(0,0,0,0.25)';
-        card.style.position = 'relative';
-
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = '×';
-        closeBtn.style.position = 'absolute';
-        closeBtn.style.top = '12px';
-        closeBtn.style.right = '12px';
-        closeBtn.style.background = 'transparent';
-        closeBtn.style.border = 'none';
-        closeBtn.style.fontSize = '1.5rem';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.addEventListener('click', () => {
-            overlay.style.display = 'none';
-        });
-
-        const content = document.createElement('div');
-        content.id = 'order-detail-content';
-
-        const actions = document.createElement('div');
-        actions.style.marginTop = '18px';
-        actions.style.textAlign = 'right';
-
-        const printBtn = document.createElement('button');
-        printBtn.textContent = 'In hóa đơn';
-        printBtn.className = 'btn-export';
-        printBtn.style.cursor = 'pointer';
-        printBtn.addEventListener('click', () => {
-            const order = overlay.dataset.currentOrder ? JSON.parse(overlay.dataset.currentOrder) : null;
-            if (order) {
-                printOrder(order);
-            }
-        });
-
-        actions.appendChild(printBtn);
-        card.appendChild(closeBtn);
-        card.appendChild(content);
-        card.appendChild(actions);
-        overlay.appendChild(card);
-
-        overlay.addEventListener('click', (event) => {
-            if (event.target === overlay) {
-                overlay.style.display = 'none';
-            }
-        });
-
-        document.body.appendChild(overlay);
-    }
-    return overlay;
-}
-
-function showOrderDetail(order) {
-    const overlay = getOverlayElement();
-    overlay.dataset.currentOrder = JSON.stringify(order);
-
-    const content = overlay.querySelector('#order-detail-content');
-    if (!content) return;
-
-    content.innerHTML = `
-        <h2 style="margin-bottom: 10px;">Chi tiết đơn ${order.id}</h2>
-        <p><strong>Khách hàng:</strong> ${order.customer}</p>
-        <p><strong>Số điện thoại:</strong> ${order.phone}</p>
-        <p><strong>Sản phẩm:</strong> ${order.products}</p>
-        <p><strong>Ngày đặt:</strong> ${formatDate(order.date)}</p>
-        <p><strong>Tổng tiền:</strong> ${formatMoney(order.total)}</p>
-        <p><strong>Trạng thái:</strong> ${statusLabel(order.status).text}</p>
-    `;
-
-    overlay.style.display = 'flex';
-}
-
-function printOrder(order) {
-    const overlay = getOverlayElement();
-    overlay.dataset.currentOrder = JSON.stringify(order);
-    showOrderDetail(order);
-}
-
-function createActions(order) {
-    const fragment = document.createDocumentFragment();
-    const eye = document.createElement('button');
-    eye.className = 'btn-action';
-    eye.title = 'Xem chi tiết';
-    eye.innerHTML = '<i class="fas fa-eye"></i>';
-    eye.addEventListener('click', () => showOrderDetail(order));
-
-    const print = document.createElement('button');
-    print.className = 'btn-action';
-    print.title = 'In hóa đơn';
-    print.innerHTML = '<i class="fas fa-print"></i>';
-    print.addEventListener('click', () => printOrder(order));
-
-    fragment.appendChild(eye);
-    fragment.appendChild(print);
-    return fragment;
-}
-
-const filters = {
-    keyword: '',
-    status: 'all',
-    date: ''
+const statusClassMap = {
+    pending: "pending",
+    delivering: "delivering",
+    done: "done",
+    cancel: "cancel",
 };
 
 const columns = [
-    { key: 'id', label: 'Mã đơn' },
     {
-        key: 'customer',
-        label: 'Khách hàng',
-        render: (value, row) => {
-            const container = document.createElement('div');
-            const name = document.createElement('strong');
-            name.textContent = value;
-            const phone = document.createElement('small');
-            phone.textContent = row.phone;
-            container.appendChild(name);
-            container.appendChild(document.createElement('br')); 
-            container.appendChild(phone);
-            return container;
-        }
+        key: "code",
+        label: "Mã đơn",
+        render: (_, row) => createOrderCodeNode(row),
     },
-    { key: 'products', label: 'Sản phẩm' },
-    { key: 'date', label: 'Ngày đặt', render: value => formatDate(value) },
-    { key: 'total', label: 'Tổng tiền', render: total => formatMoney(total) },
-    { key: 'status', label: 'Trạng thái', render: status => createStatusNode(status) },
-    { key: 'actions', label: 'Thao tác', render: (_, row) => createActions(row) }
+    {
+        key: "customer",
+        label: "Khách hàng",
+        render: (_, row) => createCustomerNode(row),
+    },
+    {
+        key: "product",
+        label: "Sản phẩm",
+        render: (_, row) => createProductNode(row),
+    },
+    {
+        key: "total",
+        label: "Tổng tiền",
+        render: (value) => formatMoney(value),
+    },
+    {
+        key: "status",
+        label: "Trạng thái",
+        render: (value) => createStatusBadge(value),
+    },
+    {
+        key: "actions",
+        label: "Thao tác",
+        render: (_, row) => createActionButtons(row),
+    },
 ];
 
-async function loadOrders() {
+function parseMaybeJson(value) {
+    if (typeof value !== "string") return value;
+
     try {
-        const data = await api.get(ordersEndpoint);
-
-        if (Array.isArray(data)) {
-            ordersData = data;
-        } else if (Array.isArray(data?.items)) {
-            ordersData = data.items;
-        } else if (Array.isArray(data?.data)) {
-            ordersData = data.data;
-        } else {
-            ordersData = [];
-        }
-
-    } catch (error) {
-        console.error('Không thể tải dữ liệu đơn hàng:', error);
-        ordersData = [];
-        window.alert('Lỗi khi tải dữ liệu đơn hàng từ API. Vui lòng thử lại.');
+        return JSON.parse(value);
+    } catch {
+        return value;
     }
-
-    updateStats();
-    renderOrders();
 }
 
-function updateStats() {
-    const total = ordersData.length;
-    const pending = ordersData.filter(o => o.status === 'pending').length;
-    const shipping = ordersData.filter(o => o.status === 'shipping').length;
-    const completed = ordersData.filter(o => o.status === 'completed').length;
-    const cancelled = ordersData.filter(o => o.status === 'cancelled').length;
+function pickFirstValue(...values) {
+    return values.find((value) => {
+        if (value === undefined || value === null) return false;
+        if (typeof value === "string") return value.trim() !== "";
+        return true;
+    });
+}
 
-    const cards = document.querySelectorAll('.stats .card');
-    if (cards.length >= 4) {
-        cards[0].querySelector('p').textContent = total.toLocaleString('vi-VN');
-        cards[1].querySelector('p').textContent = pending.toLocaleString('vi-VN');
-        cards[2].querySelector('p').textContent = completed.toLocaleString('vi-VN');
-        cards[3].querySelector('p').textContent = cancelled.toLocaleString('vi-VN');
+function toNumber(value) {
+    if (typeof value === "number") return value;
+
+    if (typeof value !== "string") {
+        return Number(value) || 0;
     }
+
+    const digitsOnly = value.replace(/[^\d-]/g, "");
+    return Number(digitsOnly) || 0;
+}
+
+function formatMoney(value) {
+    const amount = toNumber(value);
+
+    return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+    }).format(amount);
+}
+
+function extractOrderList(payload) {
+    const parsedPayload = parseMaybeJson(payload);
+
+    if (Array.isArray(parsedPayload)) {
+        return parsedPayload;
+    }
+
+    if (!parsedPayload || typeof parsedPayload !== "object") {
+        return [];
+    }
+
+    if (parsedPayload.body) {
+        const bodyList = extractOrderList(parsedPayload.body);
+        if (bodyList.length) return bodyList;
+    }
+
+    const possibleKeys = ["data", "items", "orders", "result", "results"];
+    for (const key of possibleKeys) {
+        const value = parsedPayload[key];
+
+        if (Array.isArray(value)) {
+            return value;
+        }
+
+        if (value && typeof value === "object") {
+            const nestedList = extractOrderList(value);
+            if (nestedList.length) return nestedList;
+        }
+    }
+
+    return [];
+}
+
+function normalizeStatus(status) {
+    const normalized = String(status || "pending")
+        .trim()
+        .toLowerCase();
+
+    if (["pending", "delivering", "done", "cancel"].includes(normalized)) {
+        return normalized;
+    }
+
+    return "pending";
+}
+
+function normalizeOrder(order, index) {
+    const product = order.product || {};
+    const customer = order.customer || {};
+
+    const amount = toNumber(pickFirstValue(order.amount, order.quantity, 0));
+    const productPrice = toNumber(
+        pickFirstValue(product.price, order.price, 0)
+    );
+    const total = amount * productPrice;
+
+    return {
+        id: pickFirstValue(order.id, order.orderId, index + 1),
+        code: `#ORD-${pickFirstValue(order.id, order.orderId, index + 1000)}`,
+        customerName: pickFirstValue(
+            customer.name,
+            order.customerName,
+            "Chưa có khách hàng"
+        ),
+        customerPhone: pickFirstValue(customer.phone, order.customerPhone, ""),
+        customerEmail: pickFirstValue(customer.email, order.customerEmail, ""),
+        productName: pickFirstValue(
+            product.name,
+            order.productName,
+            "Chưa có sản phẩm"
+        ),
+        productSku: pickFirstValue(product.sku, order.productSku, ""),
+        amount,
+        total,
+        status: normalizeStatus(order.status),
+        raw: order,
+    };
+}
+
+function createOrderCodeNode(order) {
+    const strong = document.createElement("strong");
+    strong.textContent = order.code;
+    return strong;
+}
+
+function createCustomerNode(order) {
+    const wrapper = document.createElement("div");
+
+    const strong = document.createElement("strong");
+    strong.textContent = order.customerName;
+
+    const small = document.createElement("small");
+    small.textContent = order.customerPhone || order.customerEmail || "";
+
+    wrapper.appendChild(strong);
+    wrapper.appendChild(document.createElement("br"));
+    wrapper.appendChild(small);
+
+    return wrapper;
+}
+
+function createProductNode(order) {
+    const span = document.createElement("span");
+    span.textContent = `${order.productName} (x${order.amount})`;
+    return span;
+}
+
+function createStatusBadge(status) {
+    const normalizedStatus = normalizeStatus(status);
+
+    const span = document.createElement("span");
+    span.className = `order-status ${statusClassMap[normalizedStatus]}`;
+    span.textContent = statusLabelMap[normalizedStatus];
+
+    return span;
+}
+
+function createActionButtons(order) {
+    const wrapper = document.createElement("div");
+
+    const viewBtn = document.createElement("button");
+    viewBtn.className = "btn-action";
+    viewBtn.type = "button";
+    viewBtn.title = "Xem";
+    viewBtn.innerHTML = '<i class="fas fa-eye"></i>';
+    viewBtn.addEventListener("click", () => {
+        console.log("Xem đơn hàng:", order.id);
+    });
+
+    const printBtn = document.createElement("button");
+    printBtn.className = "btn-action";
+    printBtn.type = "button";
+    printBtn.title = "In";
+    printBtn.innerHTML = '<i class="fas fa-print"></i>';
+    printBtn.addEventListener("click", () => {
+        console.log("In đơn hàng:", order.id);
+    });
+
+    wrapper.appendChild(viewBtn);
+    wrapper.appendChild(printBtn);
+
+    return wrapper;
+}
+
+function renderStats() {
+    const root = document.getElementById("orders-stats-root");
+    if (!root) return;
+
+    const totalOrders = state.allOrders.length;
+    const pendingOrders = state.allOrders.filter(
+        (item) => item.status === "pending"
+    ).length;
+    const deliveringOrders = state.allOrders.filter(
+        (item) => item.status === "delivering"
+    ).length;
+    const doneOrders = state.allOrders.filter(
+        (item) => item.status === "done"
+    ).length;
+    const cancelOrders = state.allOrders.filter(
+        (item) => item.status === "cancel"
+    ).length;
+
+    root.innerHTML = `
+        <div class="card">
+            <h3>Tổng đơn hàng</h3>
+            <p>${totalOrders}</p>
+        </div>
+        <div class="card">
+            <h3>Đang xử lý</h3>
+            <p>${pendingOrders + deliveringOrders}</p>
+        </div>
+        <div class="card">
+            <h3>Thành công</h3>
+            <p>${doneOrders}</p>
+        </div>
+        <div class="card">
+            <h3>Đã hủy</h3>
+            <p>${cancelOrders}</p>
+        </div>
+    `;
+}
+
+function createStatusFilter() {
+    const wrapper = document.createElement("div");
+    wrapper.className = "order-filter-group";
+
+    const options = [
+        { value: "ALL", label: "Tất cả" },
+        { value: "pending", label: "Chờ xử lý" },
+        { value: "delivering", label: "Đang giao" },
+        { value: "done", label: "Đã xong" },
+        { value: "cancel", label: "Đã hủy" },
+    ];
+
+    options.forEach((item) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = item.label;
+        button.className =
+            state.selectedStatus === item.value
+                ? "filter-chip active"
+                : "filter-chip";
+
+        button.addEventListener("click", () => {
+            state.selectedStatus = item.value;
+            renderOrdersTable();
+        });
+
+        wrapper.appendChild(button);
+    });
+
+    return wrapper;
 }
 
 function getFilteredOrders() {
-    return ordersData.filter(order => {
-        const keyword = filters.keyword.trim().toLowerCase();
-        const status = filters.status;
-        const date = filters.date;
+    const keyword = state.searchTerm.trim().toLowerCase();
 
-        if (status !== 'all' && order.status !== status) return false;
-        if (date && order.date !== date) return false;
-        if (!keyword) return true;
+    return state.allOrders.filter((order) => {
+        const matchKeyword =
+            !keyword ||
+            [order.code, order.customerName, order.productName].some((value) =>
+                String(value || "")
+                    .toLowerCase()
+                    .includes(keyword)
+            );
 
-        const text = [order.id, order.customer, order.phone, order.products].join(' ').toLowerCase();
-        return text.includes(keyword);
+        const matchStatus =
+            state.selectedStatus === "ALL" ||
+            order.status === state.selectedStatus;
+
+        return matchKeyword && matchStatus;
     });
 }
 
-function renderOrders() {
-    const rows = getFilteredOrders();
+function getEmptyMessage() {
+    if (state.loadError) return state.loadError;
+    if (state.allOrders.length && !getFilteredOrders().length) {
+        return "Không tìm thấy đơn hàng phù hợp";
+    }
+    return "Không có đơn hàng";
+}
+
+function renderOrdersTable() {
     renderTable({
-        containerId: 'orders-table-root',
-        title: 'Danh sách đơn hàng',
+        containerId: "orders-table-root",
+        title: "Danh sách đơn hàng",
         columns,
-        rows,
-        tableId: 'orders-table',
-        emptyMessage: 'Không tìm thấy đơn hàng phù hợp'
+        rows: getFilteredOrders(),
+        tableId: "orders-table",
+        headerActions: createStatusFilter(),
+        emptyMessage: getEmptyMessage(),
     });
 }
 
-function exportToExcel() {
-    const rows = getFilteredOrders();
-    if (!rows.length) {
-        window.alert('Không có đơn hàng nào để xuất.');
-        return;
-    }
+async function loadOrders() {
+    state.loadError = "";
 
-    const header = ['Mã đơn', 'Khách hàng', 'SĐT', 'Sản phẩm', 'Ngày đặt', 'Tổng tiền', 'Trạng thái'];
-    const csvRows = [header.join(',')];
-
-    rows.forEach(order => {
-        const row = [
-            order.id,
-            order.customer,
-            order.phone,
-            `"${order.products}"`,
-            order.date,
-            order.total,
-            statusLabel(order.status).text
-        ];
-        csvRows.push(row.join(','));
+    renderTable({
+        containerId: "orders-table-root",
+        title: "Danh sách đơn hàng",
+        columns,
+        rows: [],
+        tableId: "orders-table",
+        headerActions: createStatusFilter(),
+        emptyMessage: "Đang tải dữ liệu đơn hàng...",
     });
 
-    const csvData = csvRows.join('\n');
-    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `orders_${new Date().toISOString().slice(0,10)}.csv`;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    try {
+        const response = await api.get(ordersEndpoint);
+        state.allOrders = extractOrderList(response).map(normalizeOrder);
+        renderStats();
+        renderOrdersTable();
+    } catch (error) {
+        console.error("Không thể tải danh sách đơn hàng:", error);
+        state.allOrders = [];
+        state.loadError = "Không tải được dữ liệu đơn hàng từ API";
+        renderStats();
+        renderOrdersTable();
+    }
 }
 
-function initControls() {
-    const searchInput = document.querySelector('.search-bar input');
-    const exportBtn = document.querySelector('.btn-export');
-    const tabButtons = Array.from(document.querySelectorAll('.tab'));
-    const dateInput = document.querySelector('.date-filter input');
+function setupSearch() {
+    const input = document.getElementById("orderSearchInput");
+    if (!input) return;
 
-    if (searchInput) {
-        let debounceTimeout;
-        searchInput.addEventListener('input', () => {
-            clearTimeout(debounceTimeout);
-            debounceTimeout = setTimeout(() => {
-                filters.keyword = searchInput.value;
-                renderOrders();
-            }, 180);
-        });
-    }
-
-    if (exportBtn) {
-        exportBtn.addEventListener('click', exportToExcel);
-    }
-
-    if (dateInput) {
-        dateInput.addEventListener('change', () => {
-            filters.date = dateInput.value;
-            renderOrders();
-        });
-    }
-
-    tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            tabButtons.forEach(b => b.classList.remove('active'));
-            button.classList.add('active');
-
-            const text = button.textContent.trim().toLowerCase();
-            if (text === 'tất cả') filters.status = 'all';
-            else if (text.includes('chờ')) filters.status = 'pending';
-            else if (text.includes('đang')) filters.status = 'shipping';
-            else if (text.includes('xong')) filters.status = 'completed';
-            else filters.status = 'all';
-
-            renderOrders();
-        });
+    input.addEventListener("input", (event) => {
+        state.searchTerm = event.target.value;
+        renderOrdersTable();
     });
 }
 
-async function init() {
-    initControls();
+async function initOrdersPage() {
+    if (!document.getElementById("orders-table-root")) return;
+
+    setupSearch();
     await loadOrders();
 }
 
-if (document.readyState !== 'loading') {
-    init();
+if (document.readyState !== "loading") {
+    initOrdersPage();
 } else {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener("DOMContentLoaded", initOrdersPage);
 }

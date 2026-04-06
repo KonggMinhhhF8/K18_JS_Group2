@@ -9,16 +9,7 @@
 </head>
 <body>
 <div class="container">
-  <aside class="sidebar">
-    <h2>ShopAdmin</h2>
-    <ul>
-      <li><i class="fas fa-home"></i> Tổng quan</li>
-      <li class="active"><i class="fas fa-box"></i> Sản phẩm</li>
-      <li><i class="fas fa-shopping-cart"></i> Đơn hàng</li>
-      <li><i class="fas fa-users"></i> Khách hàng</li>
-      <li><i class="fas fa-chart-line"></i> Báo cáo</li>
-    </ul>
-  </aside>
+
 
   <main class="main-content">
     <header>
@@ -53,9 +44,11 @@
   <div class="modal-content">
     <h3>Thêm sản phẩm mới</h3>
     <form id="productForm">
-      <input type="text" placeholder="Tên sản phẩm" required>
-      <input type="text" placeholder="Giá bán" required>
-      <input type="number" placeholder="Số lượng tồn kho" required>
+      <input id="productName" name="name" type="text" placeholder="Tên sản phẩm" required>
+      <input id="productCategory" name="category" type="text" placeholder="Danh mục" required>
+      <input id="productPrice" name="price" type="number" placeholder="Giá bán" required>
+      <input id="productStock" name="stock" type="number" placeholder="Số lượng tồn kho" required>
+
       <div class="modal-buttons">
         <button id="btnCloseProduct" type="button" class="btn-cancel">Hủy</button>
         <button type="submit" class="btn-add">Lưu sản phẩm</button>

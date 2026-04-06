@@ -32,15 +32,14 @@
       min-height: 100vh;
     }
 
-    /* Sidebar */
     .sidebar {
       width: 260px;
+      min-width: 260px;
+      flex-shrink: 0;
       background: var(--dark-color);
       color: white;
       padding: 25px;
-      position: sticky;
-      top: 0;
-      height: 100vh;
+      min-height: 100vh;
     }
 
     .sidebar h2 {
@@ -76,9 +75,9 @@
       margin-right: 10px;
     }
 
-    /* Main Content */
     .main-content {
       flex: 1;
+      min-width: 0;
       padding: 40px;
     }
 
@@ -100,7 +99,6 @@
       margin-right: 6px;
     }
 
-    /* Form Layout */
     .customer-grid {
       display: grid;
       grid-template-columns: 2fr 1fr;
@@ -128,7 +126,6 @@
       gap: 20px;
     }
 
-    /* Input Styles */
     .form-group {
       margin-bottom: 20px;
     }
@@ -170,7 +167,6 @@
       cursor: not-allowed;
     }
 
-    /* Avatar Upload */
     .avatar-upload {
       border: 2px dashed var(--border);
       border-radius: 12px;
@@ -220,7 +216,6 @@
       color: var(--text-muted);
     }
 
-    /* Stats Box */
     .info-grid {
       display: grid;
       gap: 12px;
@@ -259,7 +254,16 @@
       color: #b8860b;
     }
 
-    /* Footer Actions */
+    .badge-silver {
+      background: #eef2f3;
+      color: #7f8c8d;
+    }
+
+    .badge-bronze {
+      background: #fdebd0;
+      color: #a04000;
+    }
+
     .form-footer {
       margin-top: 20px;
       display: flex;
@@ -348,51 +352,35 @@
 
   <main class="main-content">
     <div class="header-actions">
-      <a href="#" class="btn-back"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
+      <a href="#" id="btnBackToCustomers" class="btn-back"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
       <h2>Chỉnh sửa khách hàng</h2>
     </div>
 
     <form id="customerForm">
       <div class="customer-grid">
-        <!-- Left Column -->
         <div class="left-col">
           <div class="card">
             <h3>Thông tin khách hàng</h3>
 
             <div class="grid-2">
               <div class="form-group">
-                <label>Họ và tên</label>
-                <input type="text" placeholder="Nhập họ và tên" value="Nguyễn Anh">
+                <label for="customerName">Họ và tên</label>
+                <input id="customerName" type="text" placeholder="Nhập họ và tên">
               </div>
               <div class="form-group">
-                <label>Mã khách hàng</label>
-                <input type="text" value="CUST-001" readonly>
-              </div>
-            </div>
-
-            <div class="grid-2">
-              <div class="form-group">
-                <label>Email</label>
-                <input type="email" placeholder="Nhập email" value="anh.nguyen@email.com">
-              </div>
-              <div class="form-group">
-                <label>Số điện thoại</label>
-                <input type="tel" placeholder="Nhập số điện thoại" value="0912345123">
+                <label for="customerId">Mã khách hàng</label>
+                <input id="customerId" type="text" readonly>
               </div>
             </div>
 
             <div class="grid-2">
               <div class="form-group">
-                <label>Ngày sinh</label>
-                <input type="date" value="1995-08-15">
+                <label for="customerEmail">Email</label>
+                <input id="customerEmail" type="email" placeholder="Nhập email">
               </div>
               <div class="form-group">
-                <label>Giới tính</label>
-                <select>
-                  <option>Nam</option>
-                  <option selected>Nữ</option>
-                  <option>Khác</option>
-                </select>
+                <label for="customerPhone">Số điện thoại</label>
+                <input id="customerPhone" type="tel" placeholder="Nhập số điện thoại">
               </div>
             </div>
           </div>
@@ -401,24 +389,23 @@
             <h3>Địa chỉ & Ghi chú</h3>
 
             <div class="form-group">
-              <label>Địa chỉ</label>
-              <textarea placeholder="Nhập địa chỉ khách hàng">125 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</textarea>
+              <label for="customerAddress">Địa chỉ</label>
+              <textarea id="customerAddress" placeholder="Nhập địa chỉ khách hàng"></textarea>
             </div>
 
             <div class="form-group">
-              <label>Ghi chú nội bộ</label>
-              <textarea placeholder="Thêm ghi chú chăm sóc khách hàng...">Khách hàng thân thiết, thường mua vào dịp khuyến mãi. Ưu tiên liên hệ qua điện thoại khi có chương trình ưu đãi mới.</textarea>
+              <label for="customerNote">Ghi chú nội bộ</label>
+              <textarea id="customerNote" placeholder="Thêm ghi chú chăm sóc khách hàng..."></textarea>
             </div>
           </div>
         </div>
 
-        <!-- Right Column -->
         <div class="right-col">
           <div class="card">
             <h3>Ảnh đại diện</h3>
             <div class="avatar-upload" onclick="document.getElementById('avatarInput').click()">
-              <div class="avatar-placeholder" id="avatarPlaceholder">NA</div>
-              <img id="avatarPreview" class="avatar-img" src="#" alt="Ảnh đại diện">
+              <div class="avatar-placeholder" id="avatarPlaceholder">KH</div>
+              <img id="avatarPreview" class="avatar-img" src="" alt="Ảnh đại diện">
               <p>Nhấp để tải ảnh đại diện</p>
               <span class="helper-text">Hỗ trợ JPG, PNG. Khuyến nghị ảnh vuông.</span>
               <input type="file" id="avatarInput" hidden accept="image/*" onchange="previewAvatar(event)">
@@ -429,29 +416,20 @@
             <h3>Phân loại</h3>
 
             <div class="form-group">
-              <label>Hạng khách hàng</label>
-              <select>
-                <option>Đồng</option>
-                <option>Bạc</option>
-                <option selected>Vàng</option>
+              <label for="customerRank">Hạng khách hàng</label>
+              <select id="customerRank">
+                <option value="BRONZE">Đồng</option>
+                <option value="SILVER">Bạc</option>
+                <option value="GOLD">Vàng</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label>Trạng thái</label>
-              <select>
-                <option selected>Hoạt động</option>
-                <option>Tạm khóa</option>
-                <option>Ngừng chăm sóc</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Kênh liên hệ ưu tiên</label>
-              <select>
-                <option selected>Điện thoại</option>
-                <option>Email</option>
-                <option>Zalo</option>
+              <label for="customerStatus">Trạng thái</label>
+              <select id="customerStatus">
+                <option value="ACTIVE">Hoạt động</option>
+                <option value="LOCKED">Tạm khóa</option>
+                <option value="INACTIVE">Ngừng chăm sóc</option>
               </select>
             </div>
           </div>
@@ -461,22 +439,17 @@
             <div class="info-grid">
               <div class="info-item">
                 <span>Tổng đơn hàng</span>
-                <strong>25 đơn</strong>
+                <strong id="customerOrders">0 đơn</strong>
               </div>
 
               <div class="info-item">
                 <span>Tổng chi tiêu</span>
-                <strong>45.200.000đ</strong>
-              </div>
-
-              <div class="info-item">
-                <span>Đơn hàng gần nhất</span>
-                <strong>12/08/2024</strong>
+                <strong id="customerTotalSpending">0 đ</strong>
               </div>
 
               <div class="info-item">
                 <span>Hạng hiện tại</span>
-                <strong><span class="badge badge-gold">VÀNG</span></strong>
+                <strong id="customerCurrentRank"><span class="badge badge-bronze">ĐỒNG</span></strong>
               </div>
             </div>
           </div>
@@ -484,7 +457,7 @@
       </div>
 
       <div class="form-footer">
-        <button type="button" class="btn btn-cancel">Hủy bỏ</button>
+        <button id="btnCancelEditCustomer" type="button" class="btn btn-cancel">Hủy bỏ</button>
         <button type="submit" class="btn btn-save">Lưu thay đổi</button>
       </div>
     </form>
@@ -507,7 +480,9 @@
     };
     reader.readAsDataURL(file);
   }
-</script>
 
+  window.previewAvatar = previewAvatar;
+</script>
+<script type="module" src="./editcustomer.js"></script>
 </body>
 </html>
