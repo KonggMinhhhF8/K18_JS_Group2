@@ -389,10 +389,21 @@ function setupSearch() {
     });
 }
 
+function setupCreateOrderButton() {
+    const createBtn = document.getElementById("createOrderBtn");
+    if (!createBtn) return;
+
+    createBtn.addEventListener("click", () => {
+        // Redirect to create order page (you can create editorder.html if needed)
+        window.location.href = "./editorder.html";
+    });
+}
+
 async function initOrdersPage() {
     if (!document.getElementById("orders-table-root")) return;
 
     setupSearch();
+    setupCreateOrderButton();
     await loadOrders();
 }
 

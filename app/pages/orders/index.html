@@ -206,9 +206,14 @@
           placeholder="Tìm mã đơn, tên khách hàng..."
         >
       </div>
-      <button class="btn-export" type="button">
-        <i class="fas fa-download"></i> Xuất Excel
-      </button>
+      <div style="display: flex; gap: 10px;">
+        <button id="createOrderBtn" class="btn-export" type="button" style="background: #27ae60;">
+          <i class="fas fa-plus"></i> Tạo đơn hàng
+        </button>
+        <button class="btn-export" type="button">
+          <i class="fas fa-download"></i> Xuất Excel
+        </button>
+      </div>
     </header>
 
     <section id="orders-stats-root" class="stats"></section>
