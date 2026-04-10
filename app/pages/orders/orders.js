@@ -391,11 +391,106 @@ function setupSearch() {
 
 function setupCreateOrderButton() {
     const createBtn = document.getElementById("createOrderBtn");
-    if (!createBtn) return;
+    const modal = document.getElementById("orderModal");
+    const closeBtn = document.getElementById("closeModalBtn");
+    const cancelBtn = document.getElementById("cancelBtn");
+    const orderForm = document.getElementById("orderForm");
+
+    if (!createBtn || !modal) return;
+
+    function toggleModal(show) {
+        modal.style.display = show ? "flex" : "none";
+        if (!show) orderForm.reset();
+    }
 
     createBtn.addEventListener("click", () => {
-        // Redirect to create order page (you can create editorder.html if needed)
-        window.location.href = "./editorder.html";
+        toggleModal(true);
+    });
+
+    closeBtn?.addEventListener("click", () => {
+        toggleModal(false);
+    });
+
+    cancelBtn?.addEventListener("click", () => {
+        toggleModal(false);
+    });
+
+    modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+            toggleModal(false);
+        }
+    });
+
+    orderForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const qty = parseInt(document.getElementById("prodQty").value);
+        const price = parseInt(document.getElementById("prodPrice").value);
+
+        const newOrder = {
+            customerName: document.getElementById("custName").value,
+            customerPhone: document.getElementById("custPhone").value,
+            productName: document.getElementById("prodName").value,
+            quantity: qty,
+            amount: qty,
+            price: price,
+            total: qty * price,
+            status: document.getElementById("orderStatus").value,
+        };
+
+        try {
+            const response = await api.post(ordersEndpoint, newOrder);
+            console.log("Đơn hàng được tạo:", response);
+            toggleModal(false);
+            await loadOrders();
+        } catch (error) {
+            console.error("Lỗi khi tạo đơn hàng:", error);
+            alert("Không thể tạo đơn hàng. Vui lòng thử lại!");
+        }
+    });
+}
+
+function exportToExcel() {
+    const exportBtn = document.getElementById("exportExcelBtn");
+    if (!exportBtn) return;
+
+    exportBtn.addEventListener("click", () => {
+        if (state.allOrders.length === 0) {
+            alert("Không có dữ liệu để xuất!");
+            return;
+        }
+
+        const headers = ["Mã đơn", "Khách hàng", "Số điện thoại", "Sản phẩm", "Số lượng", "Giá (VNĐ)", "Tổng tiền (VNĐ)", "Trạng thái"];
+        const rows = state.allOrders.map(order => [
+            order.code,
+            order.customerName,
+            order.customerPhone,
+            order.productName,
+            order.amount,
+            order.total / (order.amount || 1),
+            order.total,
+            statusLabelMap[order.status]
+        ]);
+
+        const csvContent = [
+            headers.join(","),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+        ].join("\n");
+
+        const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+        link.setAttribute("href", url);
+        link.setAttribute("download", `danh-sach-don-hang-${timestamp}.csv`);
+        link.style.visibility = "hidden";
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     });
 }
 
@@ -404,6 +499,7 @@ async function initOrdersPage() {
 
     setupSearch();
     setupCreateOrderButton();
+    exportToExcel();
     await loadOrders();
 }
 
