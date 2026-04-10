@@ -1,14 +1,20 @@
 ﻿import { renderSidebar } from "../../js/components/sidebar.js";
 import { renderTable } from "../../js/components/table.js";
 import { api } from "../../js/api.js";
+import { openModal, closeModal } from "../../js/components/modal.js";
 
 const container = document.querySelector(".container");
 container.insertAdjacentHTML("afterbegin", renderSidebar("orders"));
 
 const ordersEndpoint = "/orders";
+const customersEndpoint = "/customers";
+const productsEndpoint = "/products";
+const modalId = "orderModal";
 
 const state = {
     allOrders: [],
+    allCustomers: [],
+    allProducts: [],
     searchTerm: "",
     selectedStatus: "ALL",
     loadError: "",
@@ -99,7 +105,7 @@ function formatMoney(value) {
     }).format(amount);
 }
 
-function extractOrderList(payload) {
+function extractList(payload, keys = []) {
     const parsedPayload = parseMaybeJson(payload);
 
     if (Array.isArray(parsedPayload)) {
@@ -111,12 +117,11 @@ function extractOrderList(payload) {
     }
 
     if (parsedPayload.body) {
-        const bodyList = extractOrderList(parsedPayload.body);
+        const bodyList = extractList(parsedPayload.body, keys);
         if (bodyList.length) return bodyList;
     }
 
-    const possibleKeys = ["data", "items", "orders", "result", "results"];
-    for (const key of possibleKeys) {
+    for (const key of keys) {
         const value = parsedPayload[key];
 
         if (Array.isArray(value)) {
@@ -124,12 +129,22 @@ function extractOrderList(payload) {
         }
 
         if (value && typeof value === "object") {
-            const nestedList = extractOrderList(value);
+            const nestedList = extractList(value, keys);
             if (nestedList.length) return nestedList;
         }
     }
 
     return [];
+}
+
+function extractOrderList(payload) {
+    return extractList(payload, [
+        "data",
+        "items",
+        "orders",
+        "result",
+        "results",
+    ]);
 }
 
 function normalizeStatus(status) {
@@ -144,6 +159,35 @@ function normalizeStatus(status) {
     return "pending";
 }
 
+function normalizeCustomer(customer, index) {
+    return {
+        id: pickFirstValue(customer.id, customer.customerId, index + 1),
+        name: pickFirstValue(customer.name, "Chưa có tên"),
+        email: pickFirstValue(customer.email, ""),
+        phone: pickFirstValue(customer.phone, ""),
+    };
+}
+
+function normalizeProduct(product, index) {
+    return {
+        id: pickFirstValue(product.id, product.productId, index + 1),
+        name: pickFirstValue(
+            product.name,
+            product.productName,
+            "Chưa có tên sản phẩm"
+        ),
+        price: toNumber(
+            pickFirstValue(
+                product.price,
+                product.salePrice,
+                product.sellingPrice,
+                0
+            )
+        ),
+        sku: pickFirstValue(product.sku, product.productSku, ""),
+    };
+}
+
 function normalizeOrder(order, index) {
     const product = order.product || {};
     const customer = order.customer || {};
@@ -152,11 +196,10 @@ function normalizeOrder(order, index) {
     const productPrice = toNumber(
         pickFirstValue(product.price, order.price, 0)
     );
-    const total = amount * productPrice;
 
     return {
         id: pickFirstValue(order.id, order.orderId, index + 1),
-        code: `#ORD-${pickFirstValue(order.id, order.orderId, index + 1000)}`,
+        code: `#ORD-${pickFirstValue(order.id, order.orderId, index + 1)}`,
         customerName: pickFirstValue(
             customer.name,
             order.customerName,
@@ -171,7 +214,14 @@ function normalizeOrder(order, index) {
         ),
         productSku: pickFirstValue(product.sku, order.productSku, ""),
         amount,
-        total,
+        total: toNumber(
+            pickFirstValue(
+                order.total,
+                order.totalAmount,
+                order.finalPrice,
+                amount * productPrice
+            )
+        ),
         status: normalizeStatus(order.status),
         raw: order,
     };
@@ -223,18 +273,12 @@ function createActionButtons(order) {
     viewBtn.type = "button";
     viewBtn.title = "Xem";
     viewBtn.innerHTML = '<i class="fas fa-eye"></i>';
-    viewBtn.addEventListener("click", () => {
-        console.log("Xem đơn hàng:", order.id);
-    });
 
     const printBtn = document.createElement("button");
     printBtn.className = "btn-action";
     printBtn.type = "button";
     printBtn.title = "In";
     printBtn.innerHTML = '<i class="fas fa-print"></i>';
-    printBtn.addEventListener("click", () => {
-        console.log("In đơn hàng:", order.id);
-    });
 
     wrapper.appendChild(viewBtn);
     wrapper.appendChild(printBtn);
@@ -379,6 +423,219 @@ async function loadOrders() {
     }
 }
 
+async function loadCustomersAndProducts() {
+    try {
+        const [customersRes, productsRes] = await Promise.all([
+            api.get(customersEndpoint),
+            api.get(productsEndpoint),
+        ]);
+
+        state.allCustomers = extractList(customersRes, [
+            "data",
+            "items",
+            "customers",
+            "result",
+            "results",
+        ]).map(normalizeCustomer);
+
+        state.allProducts = extractList(productsRes, [
+            "data",
+            "items",
+            "products",
+            "result",
+            "results",
+        ]).map(normalizeProduct);
+
+        renderOrderSuggestions();
+    } catch (error) {
+        console.error("Không thể tải dữ liệu khách hàng / sản phẩm:", error);
+    }
+}
+
+function renderOrderSuggestions() {
+    const customerSuggestions = document.getElementById("customerSuggestions");
+    const productSuggestions = document.getElementById("productSuggestions");
+
+    if (customerSuggestions) {
+        customerSuggestions.innerHTML = state.allCustomers
+            .map((customer) => {
+                const display = `${customer.name} - ${
+                    customer.phone || customer.email || "ID " + customer.id
+                }`;
+                return `<option value="${display}"></option>`;
+            })
+            .join("");
+    }
+
+    if (productSuggestions) {
+        productSuggestions.innerHTML = state.allProducts
+            .map((product) => {
+                const display = `${product.name} - ${
+                    product.sku || "ID " + product.id
+                }`;
+                return `<option value="${display}"></option>`;
+            })
+            .join("");
+    }
+}
+
+function findCustomerByDisplayValue(inputValue) {
+    const normalized = String(inputValue || "")
+        .trim()
+        .toLowerCase();
+
+    return state.allCustomers.find((customer) => {
+        const display = `${customer.name} - ${
+            customer.phone || customer.email || "ID " + customer.id
+        }`.toLowerCase();
+        return display === normalized;
+    });
+}
+
+function findProductByDisplayValue(inputValue) {
+    const normalized = String(inputValue || "")
+        .trim()
+        .toLowerCase();
+
+    return state.allProducts.find((product) => {
+        const display = `${product.name} - ${
+            product.sku || "ID " + product.id
+        }`.toLowerCase();
+        return display === normalized;
+    });
+}
+
+async function createOrderApi(orderData) {
+    const payload = {
+        productId: Number(orderData.productId),
+        customerId: Number(orderData.customerId),
+        amount: Number(orderData.amount),
+        status: "pending",
+    };
+
+    return api.post(ordersEndpoint, payload);
+}
+
+function buildCreatedOrder(formValues, response) {
+    const parsedResponse = parseMaybeJson(response);
+
+    const matchedCustomer = state.allCustomers.find(
+        (item) => String(item.id) === String(formValues.customerId)
+    );
+
+    const matchedProduct = state.allProducts.find(
+        (item) => String(item.id) === String(formValues.productId)
+    );
+
+    if (
+        parsedResponse &&
+        typeof parsedResponse === "object" &&
+        !Array.isArray(parsedResponse)
+    ) {
+        return normalizeOrder(
+            {
+                ...parsedResponse,
+                status: "pending",
+                customer: parsedResponse.customer || matchedCustomer || {},
+                product: parsedResponse.product || matchedProduct || {},
+                amount: formValues.amount,
+            },
+            0
+        );
+    }
+
+    return normalizeOrder(
+        {
+            id: Date.now(),
+            amount: Number(formValues.amount),
+            status: "pending",
+            customer: matchedCustomer || {},
+            product: matchedProduct || {},
+        },
+        0
+    );
+}
+
+function resetOrderForm() {
+    const form = document.getElementById("orderForm");
+    if (form) form.reset();
+}
+
+function setupModal() {
+    const addButton = document.getElementById("btnAddOrder");
+    const closeButton = document.getElementById("btnCloseOrder");
+    const form = document.getElementById("orderForm");
+
+    if (addButton) {
+        addButton.addEventListener("click", () => {
+            resetOrderForm();
+            openModal(modalId);
+        });
+    }
+
+    if (closeButton) {
+        closeButton.addEventListener("click", () => {
+            resetOrderForm();
+            closeModal(modalId);
+        });
+    }
+
+    if (form) {
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const submitButton = form.querySelector('button[type="submit"]');
+
+            const customerInputValue =
+                document.getElementById("orderCustomerName")?.value || "";
+            const productInputValue =
+                document.getElementById("orderProductName")?.value || "";
+            const amountValue =
+                document.getElementById("orderAmount")?.value || "1";
+
+            const matchedCustomer =
+                findCustomerByDisplayValue(customerInputValue);
+            const matchedProduct = findProductByDisplayValue(productInputValue);
+
+            if (!matchedCustomer) {
+                alert("Vui lòng chọn đúng khách hàng từ danh sách gợi ý");
+                return;
+            }
+
+            if (!matchedProduct) {
+                alert("Vui lòng chọn đúng sản phẩm từ danh sách gợi ý");
+                return;
+            }
+
+            const formValues = {
+                customerId: matchedCustomer.id,
+                productId: matchedProduct.id,
+                amount: amountValue,
+            };
+
+            try {
+                if (submitButton) submitButton.disabled = true;
+
+                const response = await createOrderApi(formValues);
+                const createdOrder = buildCreatedOrder(formValues, response);
+
+                state.allOrders = [createdOrder, ...state.allOrders];
+                renderStats();
+                renderOrdersTable();
+                resetOrderForm();
+                closeModal(modalId);
+
+                alert("Thêm đơn hàng thành công");
+            } catch (error) {
+                console.error("Không thể tạo đơn hàng:", error);
+                alert(error?.message || "Thêm đơn hàng thất bại");
+            } finally {
+                if (submitButton) submitButton.disabled = false;
+            }
+        });
+    }
+}
+
 function setupSearch() {
     const input = document.getElementById("orderSearchInput");
     if (!input) return;
@@ -393,6 +650,8 @@ async function initOrdersPage() {
     if (!document.getElementById("orders-table-root")) return;
 
     setupSearch();
+    setupModal();
+    await loadCustomersAndProducts();
     await loadOrders();
 }
 

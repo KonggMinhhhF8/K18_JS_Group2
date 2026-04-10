@@ -92,7 +92,7 @@
           color: var(--dark-color);
       }
 
-      .btn-export {
+      .btn-add {
           background: var(--primary-color);
           color: white;
           border: none;
@@ -173,6 +173,62 @@
           margin-top: 2px;
       }
 
+      .modal {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.45);
+          justify-content: center;
+          align-items: center;
+          z-index: 2000;
+      }
+
+      .modal.show {
+          display: flex;
+      }
+
+      .modal-content {
+          width: 100%;
+          max-width: 560px;
+          background: white;
+          border-radius: 14px;
+          padding: 24px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      }
+
+      .modal-content h3 {
+          margin-bottom: 18px;
+      }
+
+      .modal-content form {
+          display: grid;
+          gap: 14px;
+      }
+
+      .modal-content input {
+          width: 100%;
+          padding: 12px 14px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          outline: none;
+      }
+
+      .modal-buttons {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          margin-top: 8px;
+      }
+
+      .btn-cancel {
+          background: #e9ecef;
+          color: #495057;
+          border: none;
+          padding: 10px 18px;
+          border-radius: 8px;
+          cursor: pointer;
+      }
+
       @media (max-width: 1100px) {
           .stats {
               grid-template-columns: repeat(2, 1fr);
@@ -206,8 +262,8 @@
           placeholder="Tìm mã đơn, tên khách hàng..."
         >
       </div>
-      <button class="btn-export" type="button">
-        <i class="fas fa-download"></i> Xuất Excel
+      <button id="btnAddOrder" class="btn-add" type="button">
+        <i class="fas fa-plus"></i> Thêm đơn hàng
       </button>
     </header>
 
@@ -217,6 +273,46 @@
       <div id="orders-table-root"></div>
     </section>
   </main>
+</div>
+
+<div id="orderModal" class="modal">
+  <div class="modal-content">
+    <h3>Thêm đơn hàng mới</h3>
+    <form id="orderForm">
+      <input
+        id="orderCustomerName"
+        list="customerSuggestions"
+        type="text"
+        placeholder="Nhập tên khách hàng"
+        autocomplete="off"
+        required
+      >
+      <datalist id="customerSuggestions"></datalist>
+
+      <input
+        id="orderProductName"
+        list="productSuggestions"
+        type="text"
+        placeholder="Nhập tên sản phẩm"
+        autocomplete="off"
+        required
+      >
+      <datalist id="productSuggestions"></datalist>
+
+      <input
+        id="orderAmount"
+        type="number"
+        min="1"
+        placeholder="Số lượng"
+        required
+      >
+
+      <div class="modal-buttons">
+        <button id="btnCloseOrder" type="button" class="btn-cancel">Hủy</button>
+        <button type="submit" class="btn-add">Lưu đơn hàng</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script type="module" src="../orders/orders.js"></script>
