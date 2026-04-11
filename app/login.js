@@ -2,7 +2,7 @@ import { z } from "https://cdn.jsdelivr.net/npm/zod@3.23.8/+esm";
 import axios from "https://cdn.jsdelivr.net/npm/axios@1.6.8/+esm";
 
 const BASE_URL = "https://k305jhbh09.execute-api.ap-southeast-1.amazonaws.com";
-const DASHBOARD_PAGE = "../app/index.html";
+const DASHBOARD_PAGE = "./index.html";
 
 
 const loginSchema = z.object({
