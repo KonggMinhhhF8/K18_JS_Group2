@@ -14,6 +14,7 @@ const state = {
     searchTerm: "",
     selectedRank: "ALL",
     loadError: "",
+    editingCustomerId: null,
 };
 
 const rankLabelMap = {
@@ -268,7 +269,7 @@ function createActionButtons(customer) {
     editBtn.title = "Sửa";
     editBtn.innerHTML = '<i class="fas fa-user-edit"></i>';
     editBtn.addEventListener("click", () => {
-        goToEditCustomer(customer);
+        openEditModal(customer);
     });
 
     wrapper.appendChild(historyBtn);
@@ -404,6 +405,54 @@ async function loadCustomers() {
 function resetCustomerForm() {
     const form = document.getElementById("customerForm");
     if (form) form.reset();
+
+    state.editingCustomerId = null;
+    updateModalMode();
+}
+
+function updateModalMode() {
+    const modalTitle = document.getElementById("customerModalTitle");
+    const submitButton = document.getElementById("customerSubmitButton");
+    const isEditing = Boolean(state.editingCustomerId);
+
+    if (modalTitle) {
+        modalTitle.textContent = isEditing
+            ? "Chỉnh sửa khách hàng"
+            : "Thêm khách hàng mới";
+    }
+
+    if (submitButton) {
+        submitButton.textContent = isEditing
+            ? "Lưu thay đổi"
+            : "Lưu khách hàng";
+    }
+}
+
+function fillCustomerForm(customer) {
+    const nameInput = document.getElementById("custName");
+    const emailInput = document.getElementById("custEmail");
+    const phoneInput = document.getElementById("custPhone");
+    const addressInput = document.getElementById("custAddress");
+
+    if (nameInput) nameInput.value = customer.name || "";
+    if (emailInput) emailInput.value = customer.email || "";
+    if (phoneInput) phoneInput.value = customer.phone || "";
+    if (addressInput) addressInput.value = customer.address || "";
+}
+
+function openCreateModal() {
+    resetCustomerForm();
+    openModal(modalId);
+}
+
+function openEditModal(customer) {
+    if (!customer) return;
+
+    resetCustomerForm();
+    state.editingCustomerId = customer.id;
+    fillCustomerForm(customer);
+    updateModalMode();
+    openModal(modalId);
 }
 
 async function createCustomerApi(customerData) {
@@ -416,6 +465,18 @@ async function createCustomerApi(customerData) {
     };
 
     return api.post(customersEndpoint, payload);
+}
+
+async function updateCustomerApi(customerId, customerData, currentCustomer) {
+    const payload = {
+        name: customerData.name,
+        email: customerData.email,
+        phone: customerData.phone,
+        address: customerData.address,
+        rank: currentCustomer?.rank || "BRONZE",
+    };
+
+    return api.put(`${customersEndpoint}/${customerId}`, payload);
 }
 
 function buildCreatedCustomer(formValues, response) {
@@ -444,6 +505,37 @@ function buildCreatedCustomer(formValues, response) {
     );
 }
 
+function buildUpdatedCustomer(currentCustomer, formValues, response) {
+    const parsedResponse = parseMaybeJson(response);
+
+    if (
+        parsedResponse &&
+        typeof parsedResponse === "object" &&
+        !Array.isArray(parsedResponse)
+    ) {
+        return normalizeCustomer(
+            {
+                ...currentCustomer,
+                ...parsedResponse,
+                name: parsedResponse.name ?? formValues.name,
+                email: parsedResponse.email ?? formValues.email,
+                phone: parsedResponse.phone ?? formValues.phone,
+                address: parsedResponse.address ?? formValues.address,
+                rank: parsedResponse.rank ?? currentCustomer.rank,
+            },
+            0
+        );
+    }
+
+    return {
+        ...currentCustomer,
+        name: formValues.name,
+        email: formValues.email,
+        phone: formValues.phone,
+        address: formValues.address,
+    };
+}
+
 function setupModal() {
     const addButton = document.getElementById("btnAddCustomer");
     const closeButton = document.getElementById("btnCloseCustomer");
@@ -451,8 +543,7 @@ function setupModal() {
 
     if (addButton) {
         addButton.addEventListener("click", () => {
-            resetCustomerForm();
-            openModal(modalId);
+            openCreateModal();
         });
     }
 
@@ -484,26 +575,56 @@ function setupModal() {
                 return;
             }
 
+            const isEditing = Boolean(state.editingCustomerId);
+            const currentCustomer = state.allCustomers.find(
+                (item) => String(item.id) === String(state.editingCustomerId)
+            );
+
             try {
                 if (submitButton) submitButton.disabled = true;
 
-                const response = await createCustomerApi(formValues);
-                const createdCustomer = buildCreatedCustomer(
-                    formValues,
-                    response
-                );
+                if (isEditing && currentCustomer) {
+                    const response = await updateCustomerApi(
+                        state.editingCustomerId,
+                        formValues,
+                        currentCustomer
+                    );
 
-                state.allCustomers = [createdCustomer, ...state.allCustomers];
+                    const updatedCustomer = buildUpdatedCustomer(
+                        currentCustomer,
+                        formValues,
+                        response
+                    );
+
+                    state.allCustomers = state.allCustomers.map((item) =>
+                        String(item.id) === String(state.editingCustomerId)
+                            ? updatedCustomer
+                            : item
+                    );
+
+                    alert("Cập nhật khách hàng thành công");
+                } else {
+                    const response = await createCustomerApi(formValues);
+                    const createdCustomer = buildCreatedCustomer(
+                        formValues,
+                        response
+                    );
+
+                    state.allCustomers = [
+                        createdCustomer,
+                        ...state.allCustomers,
+                    ];
+
+                    alert("Thêm khách hàng thành công");
+                }
 
                 renderStats();
                 renderCustomersTable();
                 resetCustomerForm();
                 closeModal(modalId);
-
-                alert("Thêm khách hàng thành công");
             } catch (error) {
-                console.error("Không thể tạo khách hàng:", error);
-                alert(error?.message || "Thêm khách hàng thất bại");
+                console.error("Không thể lưu khách hàng:", error);
+                alert(error?.message || "Lưu khách hàng thất bại");
             } finally {
                 if (submitButton) submitButton.disabled = false;
             }
@@ -533,12 +654,4 @@ if (document.readyState !== "loading") {
     initCustomersPage();
 } else {
     document.addEventListener("DOMContentLoaded", initCustomersPage);
-}
-function goToEditCustomer(customer) {
-    if (!customer) return;
-
-    sessionStorage.setItem("editingCustomer", JSON.stringify(customer));
-    window.location.href = `./editcustomer.html?id=${encodeURIComponent(
-        customer.id
-    )}`;
 }

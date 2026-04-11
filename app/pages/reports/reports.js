@@ -283,10 +283,11 @@ function renderStats(orders) {
 function groupRevenueLast7Days(orders) {
     const today = new Date();
     const labels = [];
+    const dailyRevenue = [];
     const totals = [];
 
     for (let i = 6; i >= 0; i -= 1) {
-        const date = new Date();
+        const date = new Date(today);
         date.setDate(today.getDate() - i);
 
         const label = date.toLocaleDateString("vi-VN", {
@@ -302,14 +303,24 @@ function groupRevenueLast7Days(orders) {
 
         const dayRevenue = orders
             .filter((order) => {
-                if (!order.createdAt || order.status !== "done") return false;
+                if (order.status !== "done") return false;
+                if (!order.createdAt) return false;
+
                 const orderDate = new Date(order.createdAt);
+                if (Number.isNaN(orderDate.getTime())) return false;
+
                 return orderDate >= start && orderDate <= end;
             })
-            .reduce((sum, order) => sum + order.total, 0);
+            .reduce((sum, order) => sum + toNumber(order.total), 0);
 
         labels.push(label);
-        totals.push(dayRevenue);
+        dailyRevenue.push(dayRevenue);
+    }
+
+    let cumulativeRevenue = 0;
+    for (const revenue of dailyRevenue) {
+        cumulativeRevenue += revenue;
+        totals.push(cumulativeRevenue);
     }
 
     return { labels, totals };
@@ -331,18 +342,45 @@ function renderRevenueChart(orders) {
             labels,
             datasets: [
                 {
-                    label: "Doanh thu (VNĐ)",
+                    label: "Doanh thu lũy kế (VNĐ)",
                     data: totals,
                     borderColor: "#3498db",
-                    backgroundColor: "rgba(52, 152, 219, 0.1)",
+                    backgroundColor: "rgba(52, 152, 219, 0.12)",
                     fill: true,
-                    tension: 0.4,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
                 },
             ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return ` ${formatMoney(context.raw)}`;
+                        },
+                    },
+                },
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) {
+                            return (
+                                new Intl.NumberFormat("vi-VN").format(value) +
+                                " đ"
+                            );
+                        },
+                    },
+                },
+            },
         },
     });
 }
@@ -463,6 +501,7 @@ async function loadReportsData() {
             "result",
             "results",
         ]).map(normalizeOrder);
+
         state.products = extractList(productsResponse, [
             "data",
             "items",
@@ -470,6 +509,7 @@ async function loadReportsData() {
             "result",
             "results",
         ]).map(normalizeProduct);
+
         state.customers = extractList(customersResponse, [
             "data",
             "items",

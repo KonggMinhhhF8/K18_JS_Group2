@@ -9,15 +9,15 @@
 </head>
 <body>
 <div class="container">
-
-
   <main class="main-content">
     <header>
       <div class="search-bar">
         <input type="text" id="searchInput" placeholder="Tìm tên sản phẩm, mã SKU...">
       </div>
       <div class="user-actions">
-        <button id="btnAddProduct" class="btn-add"><i class="fas fa-plus"></i> Thêm sản phẩm</button>
+        <button id="btnAddProduct" class="btn-add">
+          <i class="fas fa-plus"></i> Thêm sản phẩm
+        </button>
       </div>
     </header>
 
@@ -42,20 +42,26 @@
 
 <div id="productModal" class="modal">
   <div class="modal-content">
-    <h3>Thêm sản phẩm mới</h3>
+    <h3 id="productModalTitle">Thêm sản phẩm mới</h3>
+
     <form id="productForm">
       <input id="productName" name="name" type="text" placeholder="Tên sản phẩm" required>
-      <input id="productCategory" name="category" type="text" placeholder="Danh mục" required>
-      <input id="productPrice" name="price" type="number" placeholder="Giá bán" required>
-      <input id="productStock" name="stock" type="number" placeholder="Số lượng tồn kho" required>
+
+      <select id="productCategory" name="category" required>
+        <option value="">Chọn danh mục</option>
+      </select>
+
+      <input id="productPrice" name="price" type="number" min="0" placeholder="Giá bán" required>
+      <input id="productStock" name="stock" type="number" min="0" placeholder="Số lượng tồn kho" required>
 
       <div class="modal-buttons">
         <button id="btnCloseProduct" type="button" class="btn-cancel">Hủy</button>
-        <button type="submit" class="btn-add">Lưu sản phẩm</button>
+        <button id="productSubmitButton" type="submit" class="btn-add">Lưu sản phẩm</button>
       </div>
     </form>
   </div>
 </div>
+
 <script type="module" src="../products/products.js"></script>
 </body>
 </html>
