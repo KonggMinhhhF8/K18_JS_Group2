@@ -3,7 +3,7 @@ import { renderTable } from "./js/components/table.js";
 import { api } from "./js/api.js";
 
 const container = document.querySelector(".container");
-container.insertAdjacentHTML("afterbegin", renderSidebar("dashboard"));
+container.insertAdjacentHTML("afterbegin", renderSidebar("dashboard", "./"));
 
 const userTrigger = document.getElementById("userTrigger");
 const logoutBtn = document.getElementById("logoutBtn");

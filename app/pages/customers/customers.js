@@ -4,7 +4,10 @@ import { renderTable } from "../../js/components/table.js";
 import { api } from "../../js/api.js";
 
 const container = document.querySelector(".container");
-container.insertAdjacentHTML("afterbegin", renderSidebar("customers"));
+container.insertAdjacentHTML(
+    "afterbegin",
+    renderSidebar("customers", "../../")
+);
 
 const modalId = "customerModal";
 const customersEndpoint = "/customers";

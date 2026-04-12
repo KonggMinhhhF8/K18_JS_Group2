@@ -4,7 +4,7 @@ import { api } from "../../js/api.js";
 import { openModal, closeModal } from "../../js/components/modal.js";
 
 const container = document.querySelector(".container");
-container.insertAdjacentHTML("afterbegin", renderSidebar("orders"));
+container.insertAdjacentHTML("afterbegin", renderSidebar("orders", "../../"));
 
 const ordersEndpoint = "/orders";
 const customersEndpoint = "/customers";

@@ -3,7 +3,7 @@ import { renderTable } from "../../js/components/table.js";
 import { api } from "../../js/api.js";
 
 const container = document.querySelector(".container");
-container.insertAdjacentHTML("afterbegin", renderSidebar("reports"));
+container.insertAdjacentHTML("afterbegin", renderSidebar("reports", "../../"));
 
 const ordersEndpoint = "/orders";
 const productsEndpoint = "/products";

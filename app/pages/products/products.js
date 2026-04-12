@@ -4,7 +4,7 @@ import { api } from "../../js/api.js";
 import { renderSidebar } from "../../js/components/sidebar.js";
 
 const container = document.querySelector(".container");
-container.insertAdjacentHTML("afterbegin", renderSidebar("products"));
+container.insertAdjacentHTML("afterbegin", renderSidebar("products", "../../"));
 
 const modalId = "productModal";
 const productsEndpoint = "/products";
