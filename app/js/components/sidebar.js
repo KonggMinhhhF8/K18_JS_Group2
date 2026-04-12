@@ -4,28 +4,38 @@ export function renderSidebar(currentPage = "", basePath = "") {
       <h2>ShopAdmin</h2>
       <ul>
         <li class="${currentPage === "dashboard" ? "active" : ""}">
-          <i class="fas fa-home"></i>
-          <a href="${basePath}index.html">Tổng quan</a>
+          <a href="${basePath}index.html">
+            <i class="fas fa-home"></i>
+            <span>Tổng quan</span>
+          </a>
         </li>
 
         <li class="${currentPage === "products" ? "active" : ""}">
-          <i class="fas fa-box"></i>
-          <a href="${basePath}pages/products/index.html">Sản phẩm</a>
+          <a href="${basePath}pages/products/index.html">
+            <i class="fas fa-box"></i>
+            <span>Sản phẩm</span>
+          </a>
         </li>
 
         <li class="${currentPage === "orders" ? "active" : ""}">
-          <i class="fas fa-shopping-bag"></i>
-          <a href="${basePath}pages/orders/index.html">Đơn hàng</a>
+          <a href="${basePath}pages/orders/index.html">
+            <i class="fas fa-shopping-bag"></i>
+            <span>Đơn hàng</span>
+          </a>
         </li>
 
         <li class="${currentPage === "customers" ? "active" : ""}">
-          <i class="fas fa-users"></i>
-          <a href="${basePath}pages/customers/index.html">Khách hàng</a>
+          <a href="${basePath}pages/customers/index.html">
+            <i class="fas fa-users"></i>
+            <span>Khách hàng</span>
+          </a>
         </li>
 
         <li class="${currentPage === "reports" ? "active" : ""}">
-          <i class="fas fa-chart-line"></i>
-          <a href="${basePath}pages/reports/index.html">Báo cáo</a>
+          <a href="${basePath}pages/reports/index.html">
+            <i class="fas fa-chart-line"></i>
+            <span>Báo cáo</span>
+          </a>
         </li>
       </ul>
     </aside>
